@@ -1,0 +1,9 @@
+env/
+__pycache__/
+.vscode/
+dist/
+*.egg-info/
+.DS_Store
+subliminalCache.dbm
+config.json
+plex_webhook.log
