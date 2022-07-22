@@ -4,10 +4,10 @@ import json
 import jsonschema
 import sys
 from flask import Flask, request, Response
-from plex_sub_downloader.logger import Logger
+from .logger import Logger
 import logging
-from plex_sub_downloader.PlexWebhookEvent import PlexWebhookEvent
-from plex_sub_downloader.PlexSubDownloader import PlexSubDownloader
+from .PlexWebhookEvent import PlexWebhookEvent
+from .PlexSubDownloader import PlexSubDownloader
 
 log = Logger.getInstance().getLogger()
 psd = PlexSubDownloader() 
@@ -94,7 +94,7 @@ def loadConfig(filepath):
 
 
 def runFlask(config):
-    
+
     APP.run(host=config.get('webhook_host', None), port=config.get('webhook_port', None))
 
 

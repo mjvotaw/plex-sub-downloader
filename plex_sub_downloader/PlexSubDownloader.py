@@ -1,10 +1,10 @@
 import os
 import tempfile
-from plex_sub_downloader.subliminalHelper import SubliminalHelper
+from .subliminalHelper import SubliminalHelper
 from subliminal.video import Video as SubVideo
 from subliminal.subtitle import Subtitle
-from plex_sub_downloader.PlexWebhookEvent import PlexWebhookEvent
-from plex_sub_downloader.logger import Logger
+from .PlexWebhookEvent import PlexWebhookEvent
+from .logger import Logger
 from plexapi.server import PlexServer
 from plexapi.video import Video
 from plexapi.library import LibrarySection
@@ -40,34 +40,49 @@ class PlexSubDownloader:
         
 
     def handleWebhookEvent(self, event):
-        """Handles the given webhook event. If the event is of type "library.new", it will start
-        the process of downloading subtitles.
+        """Handles the given webhook event. 
         :param PlexWebhookEvent event:
         """
         log.debug("handleWebhookEvent")
         log.debug("Event type: " + event.event)
 
         if event.event == "library.new":
-            log.info("Handling library.new event")
-            log.info(f'Title: {event.Metadata.title}, type: {event.Metadata.type}, section: {event.Metadata.librarySectionTitle}')
-            
-            video = self.plexServer.fetchItem(ekey=event.Metadata.key)
-            video.reload()
+            self.handleLibraryNewEvent(event)
 
-            missingVideos = self.getVidsMissingSubtitles([video])
-            log.info("Found " + str(len(missingVideos)) + " videos missing subtitles")
-            log.info([f'{video.title}, {video.key}' for video in missingVideos])
-            if len(missingVideos) > 0:
-                subtitles = self.downloadSubtitlesForVideos(missingVideos)
+    def handleLibraryNewEvent(self, event):
+        """Handles webhook events of type library.new.
+        Retrieves the relevent item from Plex and searches for subtitles.
+        :param PlexWebhookEvent event:
+        """
+        log.info("Handling library.new event")
+        log.info(f'Title: {event.Metadata.title}, type: {event.Metadata.type}, section: {event.Metadata.librarySectionTitle}')
+        
+        video = self.getVideoItemFromEvent(event)
 
-                if self.subtitle_destination == "metadata":
-                    self.uploadSubtitlesToMetadata(missingVideos, subtitles)
-                else:
-                    self.sub.save_subtitles(subtitles)
+        missingVideos = self.getVidsMissingSubtitles([video])
+        log.info("Found " + str(len(missingVideos)) + " videos missing subtitles")
+        log.info([f'{video.title}, {video.key}' for video in missingVideos])
+        if len(missingVideos) > 0:
+            subtitles = self.downloadSubtitlesForVideos(missingVideos)
+
+            if self.subtitle_destination == "metadata":
+                self.uploadSubtitlesToMetadata(missingVideos, subtitles)
             else:
-                log.info("No subtitles to download, doing nothing!")
+                self.sub.save_subtitles(subtitles)
+        else:
+            log.info("No subtitles to download, doing nothing!")
 
-            
+    def getVideoItemFromEvent(self, event):
+         # if Metadata.type == "show", then the metadata key looks like
+        # `/library/metadata/45533/children`, which doesn't return what we actually want
+        # when we call fetchItem
+        key = event.Metadata.key
+        key = key.replace("/children", "")
+        video = self.plexServer.fetchItem(ekey=key)
+        video.reload()
+        return video
+
+
     def getVidsMissingSubtitles(self,videos):
         """Search the given list of videos for ones that don't already have subtitles.
         For videos of type 'season' or 'show', this will search through all of the episodes
@@ -131,6 +146,7 @@ class PlexSubDownloader:
         log.info("Saving subtitles to Plex metadata")
         tempdir = tempfile.gettempdir()
         for video in plexVideos:
+            mediaPart = video.media[0].parts[0]
             filepath = video.media[0].parts[0].file
             for subVideo, subtitles in subtitles.items():
                 if subVideo.name == filepath:
@@ -139,7 +155,20 @@ class PlexSubDownloader:
                     savedSubtitlePaths = self.sub.save_subtitle(subVideo, subtitles, destination=tempdir)
                     for subtitlePath in savedSubtitlePaths:
                         log.debug(f'Uploading subtitles \'{subtitlePath}\' to video {video.title} {video.key}')
+                        originalDefault = None 
+                        existingSubs = video.subtitleStreams();
+                        for sub in existingSubs:
+                            if sub.default:
+                                originalDefault = sub
+                                break
+
                         video.uploadSubtitles(subtitlePath)
+
+                        if originalDefault is not None:
+                            mediaPart.setDefaultSubtitleStream(originalDefault)
+                        else:
+                            mediaPart.resetDefaultSubtitleStream()
+                        
 
 
     def checkLibraryPermissions(self, sectionId=None):

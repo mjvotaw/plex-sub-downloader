@@ -12,7 +12,9 @@ Okay, Cool, but Why?
 
 Plex has built-in Agents for downloading subtitles from OpenSubtitles.org, but it doesn't search for subtitles automatically, and, more importantly, doesn't support VIP accounts (which means you're stuck reading ads _in your subtitles!_).
 
-And there's other tools like [Sub-Zero](https://github.com/pannal/Sub-Zero.bundle) and [Bazarr](https://github.com/bazarr/), but these work best if you've already bought into the [Sonarr](https://sonarr.tv/)/[Radarr](https://radarr.video/) ecosystem. And, honestly, while these tools are great, I find them to be over-built for what I want to do.
+Plex Plugins like [Sub-Zero](https://github.com/pannal/Sub-Zero.bundle) are getting increasingly complicated to install and use, as Plex has been threatening to completely phase out plugins since 2018.
+
+And there's other tools like [Bazarr](https://github.com/bazarr/), which works best if you've already bought into the [Sonarr](https://sonarr.tv/)/[Radarr](https://radarr.video/) ecosystem. But, honestly, while these tools are great, I find them to be over-built for what I want to do.
 
 I just wanted something that tries to download subtitles for new media added to my Plex server, and that's it.
 
@@ -95,6 +97,18 @@ The url you'll need to add to Plex will be `http://<ip address>:<port>/webhook`.
 <some ip addr> - - [16/Jul/2022 21:28:14] "POST /webhook HTTP/1.1" 200 -
 ```
 
+- To verify that subtitles can be downloaded, add something new to your library. Within about 10-20 seconds, you should see output like:
+```
+2022-07-19 14:14:30:PlexSubDownloader:INFO - Handling library.new event
+2022-07-19 14:14:30:PlexSubDownloader:INFO - Title: Wild Wild West, type: movie, section: Movies
+2022-07-19 14:14:30:PlexSubDownloader:INFO - Found 1 videos missing subtitles
+2022-07-19 14:14:30:PlexSubDownloader:INFO - ['Wild Wild West, /library/metadata/45525']
+2022-07-19 14:14:30:PlexSubDownloader:INFO - Downloading subtitles for 1 videos
+2022-07-19 14:14:30:PlexSubDownloader:INFO - ['Wild Wild West']
+2022-07-19 14:14:32:PlexSubDownloader:INFO - Saving subtitles to Plex metadata
+2022-07-19 14:14:32:PlexSubDownloader:INFO - found 1 for video /path/to/movies/Wild.Wild.West.1999/Wild.Wild.West.1999.mp4
+```
+
 Congrats! It's probably working?
 
 ---
@@ -154,3 +168,11 @@ Configuration
     "log_level": 20
 }
 ```
+
+---
+Roadmap
+-------
+---
+
+- [] Implement Plex auth instead of requiring that users find an auth token on their own.
+- [] Make application register itself as webhook listener
