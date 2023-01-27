@@ -3,6 +3,7 @@ import argparse
 import json
 import jsonschema
 import sys
+from waitress import serve
 from flask import Flask, request, Response
 from .logger import Logger
 import logging
@@ -52,9 +53,6 @@ def main():
 
     if args.debug:
         Logger.getInstance().enableDebug()
-    else:
-        #this is a hack to stop Flask from logging every single request to the console
-        logging.getLogger('werkzeug').disabled = True
 
     config = loadConfig(args.config)
     log.debug("cmdline arguments:")
@@ -70,8 +68,6 @@ def main():
         jsonschema.validate(instance=config, schema=schema)
         log.info('config file is valid.')
         return
-    
-    
 
     if psd.configure(config) == False:
         log.error("An error occurred during configuration.")
@@ -79,12 +75,11 @@ def main():
     
     if "start-webhook" in args.command:
         log.info("plex-sub-downloader starting up")
+        checkPlexConfiguration()
         runFlask(config)
         log.info("plex-sub-downloader shutting down")
 
     
-    
-
 
 def loadConfig(filepath):
 
@@ -92,10 +87,17 @@ def loadConfig(filepath):
         config = json.load(fp)
         return config  
 
+def checkPlexConfiguration():
+    if psd.checkWebhookRegistration() == False:
+        psd.addWebhookToPlex()
 
 def runFlask(config):
+    logger = logging.getLogger('waitress')
+    logger.setLevel(logging.INFO)
+    host = config.get('webhook_host', None)
+    port = config.get('webhook_port', None)
+    serve(APP, host=host, port=port)
 
-    APP.run(host=config.get('webhook_host', None), port=config.get('webhook_port', None))
 
 
 if __name__ == '__main__':
