@@ -8,6 +8,7 @@ from flask import Flask, request, Response
 import logging
 from .PlexWebhookEvent import PlexWebhookEvent
 from .PlexSubDownloader import PlexSubDownloader
+from importlib.metadata import version
 
 log = logging.getLogger('plex-sub-downloader')
 psd = PlexSubDownloader() 
@@ -31,12 +32,12 @@ def main():
 
     usage = ("{FILE} "
              "--config <config_file.json> "
-             "--debug "
              "<command> (one of: configtest, start-webhook)"
              ).format(FILE=__file__)
 
     description = 'Download subtitles for recently added Plex media'
     parser = argparse.ArgumentParser(usage=usage, description=description)
+    parser.add_argument("-v", "--version", action="version", version=f'plex_sub_downloader version {version("plex_sub_downloader")}', help="Prints version info and exits")
     parser.add_argument("-c", "--config", help="Config File", default="config.json")
     parser.add_argument("-d", "--debug", help="Set log level to Debug", action='store_true', required=False)
     parser.add_argument("command", 
@@ -48,14 +49,14 @@ def main():
     parser.set_defaults(debug=False)
 
     args = parser.parse_args()
+    setupLogging()
+    config = loadConfig(args.config)
 
     if args.debug:
         log.setLevel(level=logging.DEBUG)
     else:
         log.setLevel(level=config.get('log_level',logging.INFO))
 
-    setupLogging()
-    config = loadConfig(args.config)
     log.debug("cmdline arguments:")
     log.debug(args)
     log.debug("Config params:")

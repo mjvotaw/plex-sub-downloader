@@ -17,7 +17,7 @@ authors = [
 description = "A (hopefully) straightforward cli tool for downloading subtitles for newly added Plex media."
 readme = "README.md"
 license = { file="LICENSE" }
-requires-python = ">=3.6"
+requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
