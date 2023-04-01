@@ -34,8 +34,6 @@ class SubliminalHelper:
         log.debug(self.languages)
         log.debug("providers:")
         log.debug(self.providers)
-        log.debug("provider_configs:")
-        log.debug(self.provider_configs)
 
     def search_video(self, video):
         """Searches subtitles for the given video.
