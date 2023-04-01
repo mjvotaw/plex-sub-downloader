@@ -12,9 +12,9 @@ from subliminal.subtitle import Subtitle
 from plexapi import media
 from plexapi.media import (Media, MediaPart)
 from plexapi.video import Video as PlexVideo
+import logging
 
-from plex_sub_downloader.logger import Logger
-log = Logger.getInstance().getLogger()
+log = logging.getLogger('plex-sub-downloader')
 
 class SubliminalHelper:
 

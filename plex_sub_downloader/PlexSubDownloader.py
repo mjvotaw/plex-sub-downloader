@@ -5,14 +5,14 @@ from .subliminalHelper import SubliminalHelper
 from subliminal.video import Video as SubVideo
 from subliminal.subtitle import Subtitle
 from .PlexWebhookEvent import PlexWebhookEvent
-from .logger import Logger
+import logging
 import plexapi
 from plexapi.server import PlexServer
 from plexapi.video import Video
 from plexapi.library import LibrarySection
 from plexapi.media import SubtitleStream
 
-log = Logger.getInstance().getLogger()
+log = logging.getLogger('plex-sub-downloader')
 
 class PlexSubDownloader:
 

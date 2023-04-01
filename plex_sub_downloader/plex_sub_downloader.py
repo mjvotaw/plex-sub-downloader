@@ -5,15 +5,13 @@ import jsonschema
 import sys
 from waitress import serve
 from flask import Flask, request, Response
-from .logger import Logger
 import logging
 from .PlexWebhookEvent import PlexWebhookEvent
 from .PlexSubDownloader import PlexSubDownloader
 
-log = Logger.getInstance().getLogger()
+log = logging.getLogger('plex-sub-downloader')
 psd = PlexSubDownloader() 
 APP = Flask(__name__)
-
 
 @APP.route('/webhook', methods=['POST'])
 def respond():
@@ -52,15 +50,16 @@ def main():
     args = parser.parse_args()
 
     if args.debug:
-        Logger.getInstance().enableDebug()
+        log.setLevel(level=logging.DEBUG)
+    else:
+        log.setLevel(level=config.get('log_level',logging.INFO))
 
+    setupLogging()
     config = loadConfig(args.config)
     log.debug("cmdline arguments:")
     log.debug(args)
     log.debug("Config params:")
     log.debug(config)
-
-    Logger.getInstance().setLevel(level=config.get('log_level',logging.INFO))
 
     if "configtest" in args.command:
         log.info(f'Testing config file \'{args.config}\'')
@@ -92,13 +91,18 @@ def checkPlexConfiguration():
         psd.addWebhookToPlex()
 
 def runFlask(config):
-    logger = logging.getLogger('waitress')
-    logger.setLevel(logging.INFO)
     host = config.get('webhook_host', None)
     port = config.get('webhook_port', None)
     serve(APP, host=host, port=port)
 
-
+def setupLogging():
+    log_format = '%(asctime)s:%(module)s:%(levelname)s - %(message)s'
+    date_format = "%Y-%m-%d %H:%M:%S"
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(log_format, date_format)
+    handler.setFormatter(formatter)
+    log.addHandler(handler)
+    log.propagate = False
 
 if __name__ == '__main__':
     main()
