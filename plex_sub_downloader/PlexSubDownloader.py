@@ -61,7 +61,23 @@ class PlexSubDownloader:
         log.info(f'Title: {event.Metadata.title}, type: {event.Metadata.type}, section: {event.Metadata.librarySectionTitle}')
         
         video = self.getVideoItemFromEvent(event)
+        if video is None:
+            log.info("Video referenced in event could not be retrieved.")
+            return
+        
+        self.handleDownloadingVideoSubtitles(video)
 
+    def manuallyCheckVideoSubtitles(self, video_key):
+        """Manually check video for missing subtitles, and try to download missing subs.
+        """
+
+        video = self.getVideoItem(video_key)
+        if video is None:
+            log.info(f"Video with key {video_key} could not be retrieved.")
+            return 
+        self.handleDownloadingVideoSubtitles(video)
+
+    def handleDownloadingVideoSubtitles(self, video):
         missingVideos = self.getVidsMissingSubtitles([video])
         log.info("Found " + str(len(missingVideos)) + " videos missing subtitles")
         log.info([f'{video.title}, {video.key}' for video in missingVideos])
@@ -74,17 +90,25 @@ class PlexSubDownloader:
                 self.sub.save_subtitles(subtitles)
         else:
             log.info("No subtitles to download, doing nothing!")
-
+        
     def getVideoItemFromEvent(self, event):
          # if Metadata.type == "show", then the metadata key looks like
         # `/library/metadata/45533/children`, which doesn't return what we actually want
         # when we call fetchItem
         key = event.Metadata.key
+        return self.getVideoItem(key)
+    
+    def getVideoItem(self, key):
         key = key.replace("/children", "")
-        video = self.plexServer.fetchItem(ekey=key)
-        video.reload()
-        return video
-
+        try:
+            video = self.plexServer.fetchItem(ekey=key)
+            video.reload()
+            return video
+        except Exception as e:
+            log.error(f'Error while trying to retrieve video with key {key}')
+            log.error(e)
+            return None
+    
 
     def getVidsMissingSubtitles(self,videos):
         """Search the given list of videos for ones that don't already have subtitles.
@@ -97,50 +121,73 @@ class PlexSubDownloader:
         vidsMissingSubs = []
         for v in videos:
             if v.type == 'movie' or v.type == 'episode':
-                if self.checkVideoForSubtitles(v) == False:
+                if self.isVideoMissingSubtitles(v):
                     vidsMissingSubs.append(v)
                 
             elif v.type == 'season' or v.type == 'show':
                 eps = v.episodes()
                 for e in eps:
                     e.reload()
-                    if self.checkVideoForSubtitles(e) == False:
+                    if self.isVideoMissingSubtitles(e):
                         vidsMissingSubs.append(e)
 
         return vidsMissingSubs
 
-    def checkVideoForSubtitles(self, video):
-        """Checks the given video for subtitles by retrieving the SubtitleStreams.
-        Checks against the list of languages provided in config['languages']. If _any_ 
-        language isn't found, this will return False.
+    def isVideoMissingSubtitles(self, video):
+        """Checks the given video to see if it's missing subtitles for any of the languages defined in config['languages'].
         :param video: plexapi.video.Video object
-        :return: boolean, True if the video has subtitles for every requested language, False otherwise
+        :return: boolean, False if the video has subtitles for every requested language, True otherwise
         """
-        
-        languagesNotFound = self.config['languages']
 
+        missingSubtitles = self.getMissingSubtitleLanguages(video)
+        return len(missingSubtitles) > 0
+    
+    def getMissingSubtitleLanguages(self, video):
+        """Compares the existing subtitle languages on the video to the languages requested based on config['languages'],
+        and returns requested languages that aren't already present.
+        :param video: plexapi.video.Video object
+        :return: array of language codes
+        """
+        requestedLanguages = self.config['languages'].copy()
+
+        existingSubtitleLanguages = self.getVideoSubtitleLanguageCodes(video)
+        
+        for languageCode in existingSubtitleLanguages:
+            if languageCode in requestedLanguages:
+                requestedLanguages.remove(languageCode)
+        log.info(f'Video {video.title} {video.key} is missing {len(requestedLanguages)} subtitle languages:')
+        log.info(f'{requestedLanguages}')
+
+        return requestedLanguages
+
+    def getVideoSubtitleLanguageCodes(self, video):
+        """Gets the language codes for any SubtitleStreams on the given video.
+        :param video: plexapi.video.Video object
+        :return: array of language codes
+        """
         subs = video.subtitleStreams()
-        log.debug(f'Found {len(subs)} subtitles for video {video.title} {video.key}')
+        log.info(f'Found {len(subs)} subtitles for video {video.title} {video.key}')
+        languageCodes = []
         for sub in subs:
-            log.debug(f'subtitle {sub.displayTitle} language code:{sub.languageCode}, format: {sub.format}, forced: {sub.forced}')
-            if sub.languageCode in languagesNotFound:
-                languagesNotFound.remove(sub.languageCode)
+            log.info(f'subtitle {sub.displayTitle} language code:{sub.languageCode}, format: {sub.format}, forced: {sub.forced}')
+            languageCodes.append(sub.languageCode)
         
-        return len(languagesNotFound) == 0
-        
+        return languageCodes
+
+
     def downloadSubtitlesForVideos(self, videos):
         """Attempts to download subtitles for the given list of videos.
         :param list videos: list of plexapi.video.Video objects.
         :return: dict[subliminal.video.Video, list[subliminal.subtitle.Subtitle]]
         """
 
-        log.info("Downloading subtitles for " + str(len(videos)) + " videos")
+        log.info(f"Downloading subtitles for {len(videos)} videos:")
         log.info([video.title for video in videos])
         subtitles = self.sub.search_videos(videos)
         return subtitles
 
 
-    def uploadSubtitlesToMetadata(self, plexVideos, subtitles):
+    def uploadSubtitlesToMetadata(self, plexVideos, subtitleDict):
         """Saves the subtitles to Plex.
         :param list plexVideos: list of plexapi.video.Video objects.
         :param dict subtitles: dict of dict[subliminal.video.Video, list[subliminal.subtitle.Subtitle]]
@@ -151,9 +198,9 @@ class PlexSubDownloader:
         for video in plexVideos:
             mediaPart = video.media[0].parts[0]
             filepath = video.media[0].parts[0].file
-            for subVideo, subtitles in subtitles.items():
+            for subVideo, subtitles in subtitleDict.items():
                 if subVideo.name == filepath:
-                    log.info(f'found {len(subtitles)} for video {subVideo.name}')
+                    log.debug(f'found {len(subtitles)} subtitles for video {subVideo.name}')
 
                     savedSubtitlePaths = self.sub.save_subtitle(subVideo, subtitles, destination=tempdir)
                     for subtitlePath in savedSubtitlePaths:
