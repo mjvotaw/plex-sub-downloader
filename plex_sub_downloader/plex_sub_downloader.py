@@ -32,7 +32,7 @@ def main():
 
     usage = ("{FILE} "
              "--config <config_file.json> "
-             "<command> (one of: configtest, start-webhook)"
+             "<command>"
              ).format(FILE=__file__)
 
     description = 'Download subtitles for recently added Plex media'
@@ -40,12 +40,14 @@ def main():
     parser.add_argument("-v", "--version", action="version", version=f'plex_sub_downloader version {version("plex_sub_downloader")}', help="Prints version info and exits")
     parser.add_argument("-c", "--config", help="Config File", default="config.json")
     parser.add_argument("-d", "--debug", help="Set log level to Debug", action='store_true', required=False)
-    parser.add_argument("command", 
-    nargs="+",
-    choices=["configtest", "start-webhook"],
-    help="Command to perform"
-    )
 
+    subparsers = parser.add_subparsers(title='commands', dest='command')
+    subparsers.add_parser('configtest', description='Validates the config file provided by the --config option.')
+    subparsers.add_parser('start-webhook', description='Runs the Plex webhook and listens for newly added videos.')
+
+    checkvideo_parser = subparsers.add_parser('check-video', description='Manually check the given video key for mising subtitles.')
+    checkvideo_parser.add_argument('video_key', help="The metadata key of a Movie, Episode, Season, or Show (example \"/library/metadata/42069\")")
+    
     parser.set_defaults(debug=False)
 
     args = parser.parse_args()
@@ -62,7 +64,11 @@ def main():
     log.debug("Config params:")
     log.debug(config)
 
-    if "configtest" in args.command:
+    if args.command is None:
+        parser.print_help()
+        return
+    
+    if args.command == "configtest":
         log.info(f'Testing config file \'{args.config}\'')
         schema = loadConfig(os.path.join(os.path.abspath(os.path.dirname(__file__)), "config.schema.json"))
         jsonschema.validate(instance=config, schema=schema)
@@ -73,12 +79,15 @@ def main():
         log.error("An error occurred during configuration.")
         return
     
-    if "start-webhook" in args.command:
+    if args.command == "start-webhook":
         log.info("plex-sub-downloader starting up")
         checkPlexConfiguration()
         runFlask(config)
         log.info("plex-sub-downloader shutting down")
 
+    if args.command == "check-video":
+        key = args.video_key
+        psd.manuallyCheckVideoSubtitles(key)
     
 
 def loadConfig(filepath):
