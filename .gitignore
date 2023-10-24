@@ -3,6 +3,7 @@ __pycache__/
 .vscode/
 dist/
 notes/
+local_tests/
 *.egg-info/
 .DS_Store
 subliminalCache.dbm
