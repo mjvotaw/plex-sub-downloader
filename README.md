@@ -22,7 +22,7 @@ I just wanted something that tries to download subtitles for new media added to 
 
 ## Requirements
 - Requires python >=3.8
-- You'll need to purchase [Plex Pass](https://www.plex.tv/plex-pass/) to enable [webhooks](https://support.plex.tv/articles/115002267687-webhooks/) 
+- You'll need to purchase [Plex Pass](https://www.plex.tv/plex-pass/) to enable [push notifications](https://support.plex.tv/articles/push-notifications/) and [webhooks](https://support.plex.tv/articles/115002267687-webhooks/) 
 
 ----------------
 <br />
@@ -152,7 +152,7 @@ plex_sub_downloader --config path/to/config.json check-video /library/metadata/4
 | webhook_port | Optional, default `5000` | the port to listen on. |
 | subtitle_destination | Optional, default `"with_media"` | Either `"with_media"` or `"metadata"`. `"with_media"` will save subtitle files alongside the media files. `"metadata"` will upload the subtitles to Plex, which stores the subtitles as part of the media's metadata. If Plex and PlexSubDownloader don't run on the same server, you'll need to set this to `"metadata"`.
 | languages | Optional, default `["en"]` | Array of [IETF language tags](https://en.wikipedia.org/wiki/IETF_language_tag#List_of_common_primary_language_subtags) to download subtitles for.|
-| subtitle_providers | Optional, defaults to all | List of subtitle providers to search. Currently, Subliminal supports `"addic7ed", "legendastv", "opensubtitles", "opensubtitlesvip", "podnapisi", "shooter", "thesubdb", "tvsubtitles"`. |
+| subtitle_providers | Optional, defaults to all | List of subtitle providers to search. Currently, Subliminal supports `"legendastv", "opensubtitles", "opensubtitlesvip", "podnapisi", "shooter", "thesubdb", "tvsubtitles"`. |
 |subtitle_provider_configs | Optional, default None | Dictionary of configuration parameters for your chosen subtitle providers. Each provider may support different config parameters. See [Subliminal's documentation](https://subliminal.readthedocs.io/en/latest/api/providers.html) for more details. |
 | log_level | Optional, default logging.INFO | log level. Expects an integer value. 
 
@@ -167,8 +167,7 @@ plex_sub_downloader --config path/to/config.json check-video /library/metadata/4
     "webhook_port": 6669,
     "subtitle_destination": "metadata",
     "languages": [
-        "eng",
-        "es"
+        "eng"
     ],
     "subtitle_providers": [
         "opensubtitlesvip",
