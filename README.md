@@ -68,9 +68,9 @@ You should get a result like:
 
 <br />
 
-# Running
+# Running the Webhook Listener Thing
 
-To start plex_sub_downloader, run:
+To start plex_sub_downloader in webhook mode, run:
 ```
 plex_sub_downloader --config path/to/config.json start-webhook
 ``` 
@@ -119,6 +119,15 @@ Congrats! It's probably working?
 
 <br />
 
+# Manually Running for a Specific Video
+
+plex_sub_downloader also has a command for manually checking a Movie, Episode, Season, or Show for missing subtitles.
+Simply run plex_sub_downloader with the `check-video` command option, and pass it the item's metadata key:
+
+```
+plex_sub_downloader --config path/to/config.json check-video /library/metadata/42069
+```
+
 # Command-line Arguments
 
 | Argument | Description |
@@ -128,7 +137,8 @@ Congrats! It's probably working?
 | -c CONFIG, --config CONFIG | Config File |
 | -d, --debug | Enable debug logging |
 | configtest | Run validation on config file |
-| start-webhook| Run http webhook server |
+| start-webhook | Run http webhook server |
+| check-video {video key} | Manually check the given video for missing subtitles. |
 
 <br />
 
