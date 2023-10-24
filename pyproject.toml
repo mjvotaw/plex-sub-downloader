@@ -10,9 +10,9 @@ include = ["plex_sub_downloader*"]
 
 [project]
 name = "plex_sub_downloader"
-version = "0.2.2"
+version = "0.2.3"
 authors = [
-  { name="replicatingTrouts", email="replicatingTrouts@gmail.com" },
+  { name="mjvotaw", email="mjvotaw@gmail.com" },
 ]
 description = "A (hopefully) straightforward cli tool for downloading subtitles for newly added Plex media."
 readme = "README.md"
@@ -35,5 +35,5 @@ dependencies = [
 plex_sub_downloader = "plex_sub_downloader:plex_sub_downloader.main"
 
 [project.urls]
-"Homepage" = "https://github.com/replicatingTrouts/plex-sub-downloader"
-"Bug Tracker" = "https://github.com/replicatingTrouts/plex-sub-downloader/issues"
+"Homepage" = "https://github.com/mjvotaw/plex-sub-downloader"
+"Bug Tracker" = "https://github.com/mjvotaw/plex-sub-downloader/issues"
