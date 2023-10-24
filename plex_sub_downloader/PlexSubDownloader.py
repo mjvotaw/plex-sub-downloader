@@ -93,13 +93,13 @@ class PlexSubDownloader:
 
     def checkVideoForSubtitles(self, video):
         """Checks the given video for subtitles by retrieving the SubtitleStreams.
-        Checks against the list of languages provided in config['subliminal']['languages']. If _any_ 
+        Checks against the list of languages provided in config['languages']. If _any_ 
         language isn't found, this will return False.
         :param video: plexapi.video.Video object
         :return: boolean, True if the video has subtitles for every requested language, False otherwise
         """
         
-        languagesNotFound = self.config['subliminal']['languages']
+        languagesNotFound = self.config['languages']
 
         subs = video.subtitleStreams()
         log.debug(f'Found {len(subs)} subtitles for video {video.title} {video.key}')
