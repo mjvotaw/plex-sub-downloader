@@ -2,13 +2,11 @@ Plex Sub Downloader
 ===================
 
 
-What is it?
------------
+## What is it?
 
 This is a command-line tool designed to automate the downloading of subtitles for media on your [Plex Media Server](https://www.plex.tv/). It makes use of [Flask](https://flask.palletsprojects.com/en/2.1.x/) and [Python-PlexAPI](https://github.com/pkkid/python-plexapi) to listen for newly-added media, and [Subliminal](https://github.com/Diaoul/subliminal) to search your favorite subtitle providers.
 
-Okay, Cool, but Why?
---------------------
+## Okay, Cool, but Why?
 
 Plex has built-in Agents for downloading subtitles from OpenSubtitles.org, but it doesn't search for subtitles automatically, and, more importantly, doesn't support VIP accounts (which means you're stuck reading ads _in your subtitles!_).
 
@@ -18,30 +16,32 @@ And there's other tools like [Bazarr](https://github.com/bazarr/), which works b
 
 I just wanted something that tries to download subtitles for new media added to my Plex server, and that's it.
 
----
-Requirements
-------------
----
-- Requires python >=3.6
+<br />
+
+---------------
+
+## Requirements
+- Requires python >=3.8
 - You'll need to purchase [Plex Pass](https://www.plex.tv/plex-pass/) to enable [webhooks](https://support.plex.tv/articles/115002267687-webhooks/) 
 
----
-Setup
------
----
-### NOTE: This project is still VERY MUCH a work in progress. The setup process will hopefully be easier in the next release. ###
------------------
+----------------
+<br />
 
+# Setup
 
-- First, install plex_sub_downloader:
+### NOTE: This project is still VERY MUCH a work in progress. The setup process will hopefully be easier in a future release. ###
+
+<br />
+
+First, install plex_sub_downloader:
 ```
 pip3 install plex_sub_downloader
 ```
-- Then, find an auth token for your Plex account:
+Then, find an auth token for your Plex account:
   https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/
 
 
-- Then, create a config.json file somewhere:
+Then, create a config.json file somewhere:
 
 ```
 {
@@ -57,7 +57,7 @@ pip3 install plex_sub_downloader
 
 - Next, run `configtest` on this config file to make sure it's formatted correctly
 ```
-plex_sub_downlaoder --config path/to/config.json configtest
+plex_sub_downloader --config path/to/config.json configtest
 ```
 
 You should get a result like:
@@ -66,36 +66,44 @@ You should get a result like:
 2022-07-16 21:08:38:plex_sub_downloader:INFO - config file is valid.
 ```
 
-- Next, we need to get the url to add to Plex. Run plex_sub_downloader with the `start-webhook` flag: 
+<br />
 
+# Running
+
+To start plex_sub_downloader, run:
 ```
-plex_sub_downloader --config path/to/config.json start-webhook --debug
+plex_sub_downloader --config path/to/config.json start-webhook
 ``` 
 
-Assuming it starts and runs correctly, the last few lines should look like
+Assuming it starts and runs correctly, you should see something like the following:
 ```
- * Serving Flask app 'plex_sub_downloader.plex_sub_downloader' (lazy loading)
- * Environment: production
-   WARNING: This is a development server. Do not use it in a production deployment.
-   Use a production WSGI server instead.
- * Debug mode: off
- * Running on all addresses.
-   WARNING: This is a development server. Do not use it in a production deployment.
- * Running on http://<ip address>:<port>/ (Press CTRL+C to quit)
+ 2023-04-01 15:51:01:PlexSubDownloader:INFO - Configuring PlexSubDownloader
+2023-04-01 15:51:01:plex_sub_downloader:INFO - plex-sub-downloader starting up
+2023-04-01 15:51:01:PlexSubDownloader:INFO - Checking if webhook url http://192.168.1.248:5000/webhook has been added to Plex...
+2023-04-01 15:51:02:PlexSubDownloader:INFO - webhook url http://192.168.1.248:5000/webhook has been added to Plex
  ```
+If it says `webhook url {webhookUrl} has been added to Plex`, then congrats, things worked right.
+
+If instead it says `Could not add the webhook url {webhookUrl} to Plex. You may need to manually add this through the web dashboard.`, then try the following:
 
 The url you'll need to add to Plex will be `http://<ip address>:<port>/webhook`. 
 
-- Open Plex, navigate to Settings, and select Webhooks from the left-hand menu. Add your webhook url.
+- Open Plex, navigate to Settings, and select Webhooks from the left-hand menu. 
+- Click 'Add Webhook' and add your webhook url.
 
-- To verify that Plex can call your webhook, start playing a video. You'll get a big dump of data, starting with:
+<br />
+
+# Verifying that the Webhook Works
+
+To verify that Plex can call your webhook, re-run the above startup command, and add the `--debug` flag, then start playing a video on Plex. You'll get a big dump of data, starting with:
 ```
 2022-07-16 21:28:14:PlexSubDownloader:DEBUG - handleWebhookEvent
 2022-07-16 21:28:14:PlexSubDownloader:DEBUG - Event type: media.play
-<some ip addr> - - [16/Jul/2022 21:28:14] "POST /webhook HTTP/1.1" 200 -
 ```
 
-- To verify that subtitles can be downloaded, add something new to your library. Within about 10-20 seconds, you should see output like:
+# Verifying that Subtitles Can Get Downloaded
+
+To verify that subtitles can be downloaded, add something new to your library. Within about 10-20 seconds, you should see output like:
 ```
 2022-07-19 14:14:30:PlexSubDownloader:INFO - Handling library.new event
 2022-07-19 14:14:30:PlexSubDownloader:INFO - Title: Wild Wild West, type: movie, section: Movies
@@ -109,23 +117,22 @@ The url you'll need to add to Plex will be `http://<ip address>:<port>/webhook`.
 
 Congrats! It's probably working?
 
----
-Command-line Arguments
-----------------------
----
+<br />
+
+# Command-line Arguments
+
 | Argument | Description |
 | -------- | ----------- |
-| -h, --help | show this help message and exit |
+| -h, --help | Show this help message and exits |
+| -v, --version | Prints version info and exits |
 | -c CONFIG, --config CONFIG | Config File |
 | -d, --debug | Enable debug logging |
 | configtest | Run validation on config file |
 | start-webhook| Run http webhook server |
 
+<br />
 
----
-Configuration
--------------
----
+# Configuration
 
 | Parameter | Required? | Description |
 | --------- | --------- | ----------- |
@@ -166,11 +173,3 @@ Configuration
     "log_level": 20
 }
 ```
-
----
-Roadmap
--------
----
-
-- [] Implement Plex auth instead of requiring that users find an auth token on their own.
-- [] Make application register itself as webhook listener
