@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["plex_sub_downloader*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.schema.json"]
+
+[project]
+name = "plex_sub_downloader"
+version = "0.1.12"
+authors = [
+  { name="replicatingTrouts", email="replicatingTrouts@gmail.com" },
+]
+description = "A (hopefully) straightforward cli tool for downloading subtitles for newly added Plex media."
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.6"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "PlexAPI>=4.2.0",
+    "subliminal>=2.1.0",
+    "Flask>=2.0.0",
+    "jsonschema",
+]
+
+[project.scripts]
+plex_sub_downloader = "plex_sub_downloader:plex_sub_downloader.main"
+
+[project.urls]
+"Homepage" = "https://github.com/replicatingTrouts/plex-sub-downloader"
+"Bug Tracker" = "https://github.com/replicatingTrouts/plex-sub-downloader/issues"

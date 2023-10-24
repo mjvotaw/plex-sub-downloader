@@ -1,0 +1,46 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Plex Sub Downloader config schema",
+    "type": "object",
+    "required": ["plex_base_url", "plex_auth_token"],
+    
+    "properties": {
+        "languages": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "subtitle_providers": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "subtitle_provider_configs": {
+            "type": "object"
+        },
+        "plex_base_url": {
+            "type": "string"
+        },
+        "plex_auth_token": {
+            "type": "string"
+        },
+        "webhook_host": {
+            "type": "string"
+        },
+        "webhook_port": {
+            "type": "integer"
+        },
+        "subtitle_destination": {
+            "type": "string",
+            "enum": [
+                "with_media",
+                "metadata"
+            ]
+        },
+        "log_level": {
+            "type": "integer"
+        }
+    }
+}
