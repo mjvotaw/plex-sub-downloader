@@ -47,11 +47,9 @@ pip3 install plex_sub_downloader
 {
     "plex_base_url": "<url to your plex server, ie http://localhost:32400>",
     "plex_auth_token": "<your auth token here>",
-    "subliminal": {
-        "languages": [
-            "eng"
-        ]
-    },
+    "languages": [
+        "eng"
+    ],
     "webhook_host": "0.0.0.0",
     "webhook_port": <some port number, default = 5000>
 }
