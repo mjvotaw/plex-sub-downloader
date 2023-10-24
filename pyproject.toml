@@ -10,7 +10,7 @@ include = ["plex_sub_downloader*"]
 
 [project]
 name = "plex_sub_downloader"
-version = "0.2.1"
+version = "0.2.2"
 authors = [
   { name="replicatingTrouts", email="replicatingTrouts@gmail.com" },
 ]
