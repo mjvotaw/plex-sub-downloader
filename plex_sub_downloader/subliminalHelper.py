@@ -132,9 +132,9 @@ class SubliminalHelper:
         if video.type == "episode":
 
             seriesTitle = video.grandparentTitle
-            season = int(video.parentTitle.replace("Season ", ""))
+            season = int(video.seasonNumber)
             episodeTitle = video.title
-            episodeNumber = int(video.index)
+            episodeNumber = int(video.episodeNumber)
             subEpisode = Episode(name=fileName, series=seriesTitle, season=season, episodes=episodeNumber, title=episodeTitle)
             return subEpisode
         else:

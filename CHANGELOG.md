@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.2.2 - 08/09/2023
+
+### Changes
+- Fixed issue where "Special" season episodes throw a ValueError
+- Fixed typos in README
+- Removed addic7ed as a supported subtitle provider (Subliminal apparently hasn't supported it for years)
+
 ## 0.2.1 - 04/08/2023
 
 ### Changes
