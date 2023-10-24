@@ -1,10 +1,12 @@
 import os
 import tempfile
+import socket
 from .subliminalHelper import SubliminalHelper
 from subliminal.video import Video as SubVideo
 from subliminal.subtitle import Subtitle
 from .PlexWebhookEvent import PlexWebhookEvent
 from .logger import Logger
+import plexapi
 from plexapi.server import PlexServer
 from plexapi.video import Video
 from plexapi.library import LibrarySection
@@ -15,8 +17,9 @@ log = Logger.getInstance().getLogger()
 class PlexSubDownloader:
 
     def __init__(self):
+        self.config = None
         self.sub = None
-        self.plex = None
+        self.plexServe = None
 
     def configure(self, config):
         """initializes and configures the needed classes for PlexSubDownloader to work.
@@ -139,7 +142,7 @@ class PlexSubDownloader:
 
     def uploadSubtitlesToMetadata(self, plexVideos, subtitles):
         """Saves the subtitles to Plex.
-        :param list videos: list of plexapi.video.Video objects.
+        :param list plexVideos: list of plexapi.video.Video objects.
         :param dict subtitles: dict of dict[subliminal.video.Video, list[subliminal.subtitle.Subtitle]]
         """
 
@@ -163,13 +166,15 @@ class PlexSubDownloader:
                                 break
 
                         video.uploadSubtitles(subtitlePath)
-
-                        if originalDefault is not None:
-                            mediaPart.setDefaultSubtitleStream(originalDefault)
-                        else:
-                            mediaPart.resetDefaultSubtitleStream()
-                        
-
+                        try:
+                            if originalDefault is not None:
+                                mediaPart.setDefaultSubtitleStream(originalDefault)
+                            else:
+                                mediaPart.resetDefaultSubtitleStream()
+                        except Exception as e:
+                            log.debug('Error when trying to set default subtitle stream. This probably isn\'t a big deal?')
+                            log.debug(e)
+                            
 
     def checkLibraryPermissions(self, sectionId=None):
         """Checks whether the application has permissions to read/write to the base paths of each section 
@@ -202,5 +207,70 @@ class PlexSubDownloader:
                         checkedOk = False
         
         return checkedOk
+    
+    def checkWebhookRegistration(self):
+        
+        webhookUrl = self.getWebhookUrl()
+        log.info(f'Checking if webhook url {webhookUrl} has been added to Plex...')
+
+        plexAccount = self.plexServer.myPlexAccount()
+        webhooks = plexAccount.webhooks()
+
+        if webhookUrl in webhooks:
+            log.info(f'webhook url {webhookUrl} has been added to Plex')
+            return True
+        else:
+            log.info(f'webhook url {webhookUrl} has NOT been added to Plex')
+            return False
+    
+    def addWebhookToPlex(self):
+        webhookUrl = self.getWebhookUrl()
+        plexAccount = self.plexServer.myPlexAccount()
+        log.info(f'Attempting to add webhook url {webhookUrl} to Plex...')
+        webhooks = plexAccount.addWebhook(webhookUrl)
+        if webhookUrl in webhooks:
+            log.info('Webhook url successfully added!')
+            return True
+        else:
+            log.error(f'Could not add the webhook url {webhookUrl} to Plex. You may need to manually add this through the web dashboard.')
+            return False
+
+    def getWebhookUrl(self):
+        host = self.getExternalHost()
+        port = self.config.get('webhook_port', None)
+        if port is not None:
+            port = f":{port}"
+
+        webhookUrl = f"http://{host}{port}/webhook"
+        return webhookUrl
+    
+    def getExternalHost(self):
+        host = self.config.get('webhook_host', '0.0.0.0')
+        
+        if host == "0.0.0.0":
+            external_host = self.get_interface_ip(socket.AF_INET)
+            return external_host
+        elif host == "::":
+            external_host = self.get_interface_ip(socket.AF_INET6)
+            return external_host
+        else:
+            return host
+
+    def get_interface_ip(self, family: socket.AddressFamily) -> str:
+        """Get the IP address of an external interface. Used when binding to
+        0.0.0.0 or ::1 to show a more useful URL.
+        :meta private:
+        """
+        # arbitrary private address
+        host = "fd31:f903:5ab5:1::1" if family == socket.AF_INET6 else "10.253.155.219"
+
+        with socket.socket(family, socket.SOCK_DGRAM) as s:
+            try:
+                s.connect((host, 58162))
+            except OSError:
+                return "::1" if family == socket.AF_INET6 else "127.0.0.1"
+
+            return s.getsockname()[0]  # type: ignore
+
 
 
