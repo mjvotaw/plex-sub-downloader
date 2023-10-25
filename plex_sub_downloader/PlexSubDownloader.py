@@ -157,30 +157,18 @@ class PlexSubDownloader:
         """
         requestedLanguages = self.config['languages'].copy()
 
-        existingSubtitleLanguages = self.getVideoSubtitleLanguageCodes(video)
+        subtitles = video.subtitleStreams()
         
-        for languageCode in existingSubtitleLanguages:
-            if languageCode in requestedLanguages:
-                requestedLanguages.remove(languageCode)
+        for subtitle in subtitles:
+            if self.format_priority is not None and subtitle.format not in self.format_priority:
+                continue
+            if subtitle.languageCode in requestedLanguages:
+                requestedLanguages.remove(subtitle.languageCode)
+
         log.info(f'Video {video.title} {video.key} is missing {len(requestedLanguages)} subtitle languages:')
         log.info(f'{requestedLanguages}')
 
         return requestedLanguages
-
-    def getVideoSubtitleLanguageCodes(self, video):
-        """Gets the language codes for any SubtitleStreams on the given video.
-        :param video: plexapi.video.Video object
-        :return: array of language codes
-        """
-        subs = video.subtitleStreams()
-        log.info(f'Found {len(subs)} subtitles for video {video.title} {video.key}')
-        languageCodes = []
-        for sub in subs:
-            log.info(f'subtitle {sub.displayTitle} language code:{sub.languageCode}, format: {sub.format}, forced: {sub.forced}')
-            languageCodes.append(sub.languageCode)
-        
-        return languageCodes
-
 
     def downloadSubtitlesForVideos(self, videos):
         """Attempts to download subtitles for the given list of videos.
