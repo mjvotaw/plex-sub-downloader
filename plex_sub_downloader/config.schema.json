@@ -11,6 +11,12 @@
                 "type": "string"
             }
         },
+        "format_priority": {
+            "type": "array", 
+            "items": {
+                "type": "string"
+            }
+        },
         "subtitle_providers": {
             "type": "array",
             "items": {

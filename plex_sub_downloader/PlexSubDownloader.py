@@ -30,9 +30,16 @@ class PlexSubDownloader:
         log.info("Configuring PlexSubDownloader")
         self.config = config
         self.subtitle_destination = config.get('subtitle_destination', 'with_media')
-        self.sub = SubliminalHelper(languages=config.get('languages', None), 
-        providers= config.get('subtitle_providers', None),
-        provider_configs=config.get('subtitle_provider_configs', None))
+        self.format_priority = config.get('format_priority', None)
+        if self.format_priority is not None and len(self.format_priority) == 0:
+            self.format_priority = None
+
+        self.sub = SubliminalHelper(
+            languages=config.get('languages', None), 
+            providers= config.get('subtitle_providers', None),
+            provider_configs=config.get('subtitle_provider_configs', None),
+            format_priority=self.format_priority
+            )
         
         self.plexServer = PlexServer(baseurl=config['plex_base_url'], token=config['plex_auth_token'])
         
