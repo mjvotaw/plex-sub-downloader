@@ -34,3 +34,8 @@ plex_sub_downloader = "plex_sub_downloader:plex_sub_downloader.main"
 [project.urls]
 "Homepage" = "https://github.com/mjvotaw/plex-sub-downloader"
 "Bug Tracker" = "https://github.com/mjvotaw/plex-sub-downloader/issues"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
