@@ -11,6 +11,7 @@ from subliminal.core import ProviderPool
 from subliminal.providers.opensubtitles import ( OpenSubtitlesVipProvider, OpenSubtitlesVipSubtitle)
 from subliminal.video import (Video as SubVideo, Episode, Movie)
 from subliminal.subtitle import Subtitle
+from subliminal.utils import hash_napiprojekt, hash_opensubtitles, hash_shooter, hash_thesubdb
 
 from plexapi import media
 from plexapi.media import (Media, MediaPart)
@@ -37,6 +38,13 @@ class SubliminalHelper:
         log.debug(self.languages)
         log.debug("providers:")
         log.debug(self.providers)
+
+        self.hash_functions = {
+            'opensubtitles': hash_opensubtitles,
+            'shooter': hash_shooter,
+            'thesubdb': hash_thesubdb,
+            'napiprojekt': hash_napiprojekt,
+        }
 
     def search_video(self, video):
         """Searches subtitles for the given video.
@@ -168,7 +176,7 @@ class SubliminalHelper:
         videoMedia = video.media[0]
         videoPart = videoMedia.parts[0]
 
-        fileName = videoPart.file
+        filepath = videoPart.file
         imdb_id = None
 
         for guid in video.guids:
@@ -183,11 +191,20 @@ class SubliminalHelper:
             season = int(video.seasonNumber)
             episodeTitle = video.title
             episodeNumber = int(video.episodeNumber)
-            subEpisode = Episode(name=fileName, series=seriesTitle, season=season, episodes=episodeNumber, title=episodeTitle)
-            return subEpisode
+            subVideo = Episode(name=filepath, series=seriesTitle, season=season, episodes=episodeNumber, title=episodeTitle)
         else:
-            subMovie = Movie(name=fileName, title=video.title, year=video.year, imdb_id=[imdb_id])
-            return subMovie
+            subVideo = Movie(name=filepath, title=video.title, year=video.year, imdb_id=[imdb_id])
+
+        if videoPart.size > 10485760:
+            subVideo = self.set_video_hashes(subVideo)
+
+        return subVideo
+    
+    def set_video_hashes(self, subVideo):
+        for provider in self.providers:
+                if provider in self.hash_functions.keys():
+                    subVideo.hashes[provider] = self.hash_functions[provider](subVideo.name)
+        return subVideo
         
     def _get_subtitle_format(self, subtitle):
         """Returns the file extension for the given subtitle, with the '.' removed."""
