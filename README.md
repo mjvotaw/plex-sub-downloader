@@ -152,7 +152,7 @@ plex_sub_downloader --config path/to/config.json check-video /library/metadata/4
 | webhook_port | Optional, default `5000` | the port to listen on. |
 | subtitle_destination | Optional, default `"with_media"` | Either `"with_media"` or `"metadata"`. `"with_media"` will save subtitle files alongside the media files. `"metadata"` will upload the subtitles to Plex, which stores the subtitles as part of the media's metadata. If Plex and PlexSubDownloader don't run on the same server, you'll need to set this to `"metadata"`.
 | languages | Optional, default `["en"]` | Array of [IETF language tags](https://en.wikipedia.org/wiki/IETF_language_tag#List_of_common_primary_language_subtags) to download subtitles for.|
-| subtitle_providers | Optional, defaults to all | List of subtitle providers to search. Currently, Subliminal supports `"legendastv", "opensubtitles", "opensubtitlesvip", "podnapisi", "shooter", "thesubdb", "tvsubtitles"`. |
+| subtitle_providers | Optional, defaults to all | List of subtitle providers to search. Currently, this only supports `"opensubtitles"` and  `"opensubtitlesvip"`. Other providers require things like hashing of video files, which I'm still working on. |
 |subtitle_provider_configs | Optional, default None | Dictionary of configuration parameters for your chosen subtitle providers. Each provider may support different config parameters. See [Subliminal's documentation](https://subliminal.readthedocs.io/en/latest/api/providers.html) for more details. |
 | log_level | Optional, default logging.INFO | log level. Expects an integer value. 
 
@@ -170,8 +170,7 @@ plex_sub_downloader --config path/to/config.json check-video /library/metadata/4
         "eng"
     ],
     "subtitle_providers": [
-        "opensubtitlesvip",
-        "tvsubtitles"
+        "opensubtitlesvip"
     ],
     "subtitle_provider_configs": {
         "opensubtitlesvip": {
