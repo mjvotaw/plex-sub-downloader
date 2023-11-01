@@ -17,15 +17,16 @@ from plexapi import media
 from plexapi.media import (Media, MediaPart)
 from plexapi.video import Video as PlexVideo
 import logging
+import itertools
 
 log = logging.getLogger('plex-sub-downloader')
 
 class SubliminalHelper:
 
-    def __init__(self, languages=['eng'], providers=None, provider_configs=None, format_priority=None):
+    def __init__(self, providers=None, provider_configs=None, format_priority=None):
 
-        self.region = region.configure('dogpile.cache.dbm', arguments={'filename': 'subliminalCache.dbm'})
-        self.languages = set([subliminal.core.Language(lang) for lang in languages])
+        if region.is_configured == False:
+            region.configure('dogpile.cache.dbm', arguments={'filename': 'subliminalCache.dbm'})
         self.format_priority = format_priority
         self.providers = providers
         if providers is None and provider_configs is not None:
@@ -34,8 +35,6 @@ class SubliminalHelper:
         self.provider_configs = provider_configs
 
         log.debug("Setting up Subliminal with configs:")
-        log.debug("languages:")
-        log.debug(self.languages)
         log.debug("providers:")
         log.debug(self.providers)
 
@@ -46,54 +45,71 @@ class SubliminalHelper:
             'napiprojekt': hash_napiprojekt,
         }
 
-    def search_video(self, video):
+    def search_video(self, video, languages):
         """Searches subtitles for the given video.
         :param video: plexapi.video.Video object
         :return: list[subliminal.subtitle.Subtitle]
         """
         subVideo = self.build_subliminal_video(video)
-        return self._search_videos(subVideo)
+        return self._search_videos(subVideo, languages)
 
-    def search_videos(self, videos):
+    def search_videos(self, videos, languages):
         """Searches subtitles for multiple videos at once.
         :param videos: list of plexapi.video.Video objects.
         :return: dict[subliminal.video.Video, list[subliminal.subtitle.Subtitle]]
         """
         subVideos = [self.build_subliminal_video(v) for v in videos]
-        return self._search_videos(subVideos)
+        return self._search_videos(subVideos, languages)
     
-    def _search_videos(self, videos):
-
-        subtitles = subliminal.list_subtitles(videos, languages=self.languages, providers=self.providers, provider_configs=self.provider_configs)
+    def _search_videos(self, videos, languages):
+        """Actually handles searching for subtitles.
+        :param videos: list[subliminal.video.Video]
+        :param languages: list[list[str]] A list of languages to find for each video.
+        :return: dict[subliminal.video.Video, list[subliminal.subtitle.Subtitle]]
+        """
+        sub_languages = [[subliminal.core.Language(l) for l in vid_langs] for vid_langs in languages]
+        languages_list = set(itertools.chain.from_iterable(sub_languages))
+        subtitles = subliminal.list_subtitles(videos, languages=languages_list, providers=self.providers, provider_configs=self.provider_configs)
         
         best_subtitles = {}
 
-        for video, subs in subtitles.items():
-            best_sub = self.select_best_subtitle(video, subs)
-            if best_sub is not None:
-                best_subtitles[video] = [best_sub]
+        for i in range(0, len(videos)):
+            video = videos[i]
+            video_languages = sub_languages[i]
+            subs = subtitles[video]
+            best_subs = self.select_best_subtitles(video, subs, video_languages)
+            if best_subs is not None:
+                best_subtitles[video] = best_subs
         
         log.debug(best_subtitles)
         return best_subtitles
 
-
-    def select_best_subtitle(self, video, subtitles):
-        """Selects the 'best' subtitle for the given video based on a combination of factors, including subliminal.score.compute_score, and subtitle format priority.
+    def select_best_subtitles(self, video, subtitles, languages):
+        """Selects the 'best' subtitles for the given video based on a combination of factors, including subliminal.score.compute_score, and subtitle format priority. 
+        Returns 1 subtitle for each language (if any were found).
         :param video: subliminal.video.Video object
         :param subtitles: list[subliminal.subtitle.Subtitle]
-        :return: subliminal.subtitle.Subtitle | None
+        :param languages: list[subliminal.core.Language]
+        :return: list[subliminal.subtitle.Subtitle]
         """
         subtitles = self.filter_subtitles(video, subtitles)
 
-        decorated_subtitles = [(compute_score(subtitle, video), self._get_subtitle_format_priority(subtitle), subtitle) for subtitle in subtitles]
-        decorated_subtitles.sort(key=itemgetter(0), reverse=True)
+        # Build a decorated list of subtitles that includes their "score" and their format priority.
+        # Sort the list by format priority from highest to lowest, and then score from highest to lowest.
+        decorated_subtitles = [(compute_score(subtitle, video), self._get_subtitle_format_priority(subtitle, video), subtitle) for subtitle in subtitles]
         decorated_subtitles.sort(key=itemgetter(1), reverse=True)
+        decorated_subtitles.sort(key=itemgetter(0), reverse=True)
         subtitles = [subtitle for score, fmt_priority, subtitle in decorated_subtitles]
 
-        if len(subtitles) == 0:
-            return None
-        
-        return subtitles[0]
+        # Find the first subtitle for each language
+        selected_subtitles = [] 
+        for lang in languages:
+            for sub in subtitles:
+                if sub.language == lang:
+                    selected_subtitles.append(sub)
+                    break
+
+        return selected_subtitles
 
     def filter_subtitles(self, video, subtitles):
         """Filters the list of subtitles based on config preferences.
@@ -105,19 +121,9 @@ class SubliminalHelper:
         filtered_subtitles = subtitles.copy()
         
         if self.format_priority is not None:
-            filtered_subtitles = [s for s in filtered_subtitles if self._get_subtitle_format(s) in self.format_priority]
+            filtered_subtitles = [s for s in filtered_subtitles if self._get_subtitle_format(s, video) in self.format_priority]
         
         return filtered_subtitles
-
-    def search_sub_video(self, sub_video):
-        """Searches subtitles for the given video.
-        :param video: subliminal.video.Video object.
-        :return: list[subliminal.subtitle.Subtitle]
-        """
-        subtitles = subliminal.download_best_subtitles([sub_video], languages=self.languages, providers=self.providers, provider_configs=self.provider_configs)
-        log.debug(subtitles)
-        return subtitles[sub_video]
-
 
     def save_subtitle(self, video, subtitle, destination=None):
         """Saves the given subtitle (or subtitles) for the given video.
@@ -150,7 +156,6 @@ class SubliminalHelper:
         """
         savedFilepaths = []
         for video, subs in subtitles.items():
-            log.info(f'Found {len(subs)} subtitles for video \'{video.name}\'')
             saved = self.save_subtitle(video, subs)
             savedFilepaths = savedFilepaths + saved
         
@@ -201,17 +206,27 @@ class SubliminalHelper:
         return subVideo
     
     def set_video_hashes(self, subVideo):
+        """Computes hashes as needed for any subtitle providers being used, and returns the subVideo object.
+            If the file cannot be accessed (either due to permissions, or if the file is only available remotely),
+            nothing will be done.
+            :param subVideo: subliminal.video.Video object
+            :return: subliminal.video.Video object
+        """
+        
+        if os.path.exists(subVideo.name) == False:
+            return subVideo
+        
         for provider in self.providers:
                 if provider in self.hash_functions.keys():
                     subVideo.hashes[provider] = self.hash_functions[provider](subVideo.name)
         return subVideo
         
-    def _get_subtitle_format(self, subtitle):
+    def _get_subtitle_format(self, subtitle, video):
         """Returns the file extension for the given subtitle, with the '.' removed."""
 
-        return Path(subtitle.filename).suffix.replace(".", "")
+        return Path(subtitle.get_path(video)).suffix.replace(".", "")
     
-    def _get_subtitle_format_priority(self, subtitle):
+    def _get_subtitle_format_priority(self, subtitle, video):
         """Returns the 'priority' of the format for the given subtitle, based on the `subtitle_preferences` config.
         A higher value is considered higher priority. A value of -1 means that the given format was not found in `subtitle_preferences`.
         If `subtitle_preferences` is None, then this will return 0 for all format. 
@@ -219,7 +234,7 @@ class SubliminalHelper:
         if self.format_priority is None:
             return 0
 
-        fmt = self._get_subtitle_format(subtitle)
+        fmt = self._get_subtitle_format(subtitle, video)
         if fmt not in self.format_priority:
             return -1
         return len(self.format_priority) - self.format_priority.index(fmt)

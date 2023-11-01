@@ -12,6 +12,7 @@ from plexapi.video import Video
 from plexapi.library import LibrarySection
 from plexapi.media import SubtitleStream
 
+
 log = logging.getLogger('plex-sub-downloader')
 
 class PlexSubDownloader:
@@ -35,7 +36,6 @@ class PlexSubDownloader:
             self.format_priority = None
 
         self.sub = SubliminalHelper(
-            languages=config.get('languages', None), 
             providers= config.get('subtitle_providers', None),
             provider_configs=config.get('subtitle_provider_configs', None),
             format_priority=self.format_priority
@@ -178,7 +178,8 @@ class PlexSubDownloader:
 
         log.info(f"Downloading subtitles for {len(videos)} videos:")
         log.info([video.title for video in videos])
-        subtitles = self.sub.search_videos(videos)
+        missing_languages = [self.getMissingSubtitleLanguages(video) for video in videos]
+        subtitles = self.sub.search_videos(videos, missing_languages)
         return subtitles
 
 
@@ -196,7 +197,8 @@ class PlexSubDownloader:
             for subVideo, subtitles in subtitleDict.items():
                 if subVideo.name == filepath:
                     log.debug(f'found {len(subtitles)} subtitles for video {subVideo.name}')
-
+                    if len(subtitles) == 0:
+                        continue
                     savedSubtitlePaths = self.sub.save_subtitle(subVideo, subtitles, destination=tempdir)
                     for subtitlePath in savedSubtitlePaths:
                         log.debug(f'Uploading subtitles \'{subtitlePath}\' to video {video.title} {video.key}')
