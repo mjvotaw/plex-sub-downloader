@@ -20,9 +20,7 @@ def respond():
     Handle POST request sent from Plex server
     """
     data = json.loads(request.form.get('payload'))
-    log.debug(data)
-    log.debug("\n\n\n")
-
+    
     event = PlexWebhookEvent(data)
     psd.handleWebhookEvent(event)
     return Response(status=200)
@@ -61,8 +59,6 @@ def main():
 
     log.debug("cmdline arguments:")
     log.debug(args)
-    log.debug("Config params:")
-    log.debug(config)
 
     if args.command is None:
         parser.print_help()
