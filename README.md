@@ -175,8 +175,7 @@ plex_sub_downloader --config path/to/config.json check-video /library/metadata/4
         "smi"
     ],
     "subtitle_providers": [
-        "opensubtitlesvip",
-        "tvsubtitles"
+        "opensubtitlesvip"
     ],
     "subtitle_provider_configs": {
         "opensubtitlesvip": {
