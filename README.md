@@ -146,15 +146,16 @@ plex_sub_downloader --config path/to/config.json check-video /library/metadata/4
 
 | Parameter | Required? | Description |
 | --------- | --------- | ----------- |
-| plex_base_url | Yes |Base url to reach your Plex Media Server (ie `"http://127.0.0.1:32400"`) |
-| plex_auth_token | Yes |Authentication token, needed to send requests to your server. |
-| webhook_host | optional, default `"127.0.0.1"` | the hostname to listen on. By default, the server will only be accessible from the computer running it. Set this to `"0.0.0.0"` to make it publicly available on your network.|
+| plex_base_url | Required |Base url to reach your Plex Media Server (ie `"http://127.0.0.1:32400"`) |
+| plex_auth_token | Required |Authentication token, needed to send requests to your server. |
+| subtitle_providers | Required | List of subtitle providers to search. Currently, this really is only guaranteed to work with `"opensubtitles"` and `"opensubtitlesvip"`. Subliminal supports `"legendastv", "opensubtitles", "opensubtitlesvip", "podnapisi", "shooter", "thesubdb", "tvsubtitles"`, so you're welcome to try any of those if you want. |
+|subtitle_provider_configs | Required | Dictionary of configuration parameters for your chosen subtitle providers. Each provider may support different config parameters. See [Subliminal's documentation](https://subliminal.readthedocs.io/en/latest/api/providers.html) for more details. |
+| webhook_host | Optional, default `"127.0.0.1"` | The hostname to listen on. By default, the server will only be accessible from the computer running it. Set this to `"0.0.0.0"` to make it publicly available on your network.|
 | webhook_port | Optional, default `5000` | the port to listen on. |
 | subtitle_destination | Optional, default `"with_media"` | Either `"with_media"` or `"metadata"`. `"with_media"` will save subtitle files alongside the media files. `"metadata"` will upload the subtitles to Plex, which stores the subtitles as part of the media's metadata. If Plex and PlexSubDownloader don't run on the same server, you'll need to set this to `"metadata"`.
-| languages | Optional, default `["en"]` | Array of [IETF language tags](https://en.wikipedia.org/wiki/IETF_language_tag#List_of_common_primary_language_subtags) to download subtitles for.|
-| subtitle_providers | Optional, defaults to all | List of subtitle providers to search. Currently, Subliminal supports `"legendastv", "opensubtitles", "opensubtitlesvip", "podnapisi", "shooter", "thesubdb", "tvsubtitles"`. |
-|subtitle_provider_configs | Optional, default None | Dictionary of configuration parameters for your chosen subtitle providers. Each provider may support different config parameters. See [Subliminal's documentation](https://subliminal.readthedocs.io/en/latest/api/providers.html) for more details. |
-| log_level | Optional, default logging.INFO | log level. Expects an integer value. 
+| languages | Optional, default `["eng"]` | Array of [ISO 639-3 language tags](https://en.wikipedia.org/wiki/List_of_ISO_639-3_codes) to download subtitles for.|
+| format_priority | Optional, default `None` | Array of subtitle formats (file extensions, without the ".") that should be prioritized. PlexSubDownloader will ignore any existing subtitles with formats not listed and will try to find subtitles in one of the formats listed. [Plex fully supports](https://support.plex.tv/articles/200471133-adding-local-subtitles-to-your-media/) `"srt", "smi", "ssa", "ass"`, and `"vtt"` formats. |
+| log_level | Optional, default `INFO` | The log level to set [Python's logging](https://docs.python.org/3/howto/logging.html). Expects a string value, one of `"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"`. |
 
 
 ### Example configuration:
@@ -169,6 +170,10 @@ plex_sub_downloader --config path/to/config.json check-video /library/metadata/4
     "languages": [
         "eng"
     ],
+    "format_priority": [
+        "srt", 
+        "smi"
+    ],
     "subtitle_providers": [
         "opensubtitlesvip",
         "tvsubtitles"
@@ -179,6 +184,6 @@ plex_sub_downloader --config path/to/config.json check-video /library/metadata/4
             "password": "<password here>"
         }
     },
-    "log_level": 20
+    "log_level": "DEBUG"
 }
 ```

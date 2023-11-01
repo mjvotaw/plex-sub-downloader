@@ -46,7 +46,7 @@
             ]
         },
         "log_level": {
-            "type": "integer"
+            "type": ["integer", "string"]
         }
     }
 }

@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 0.2.4 - 11/01/2023
+
+### Changes
+- Added a new `format_priority` config option, which tells PlexSubDownloader to only download subtitles of the specified formats
+- Added hash generation for subtitle providers as needed (this requires that PlexSubDownloader can access the video file)
+- Removed some debug logs that would potentially log sensitive information
+- Updated `log_level` config option to support string values (ie `"DEBUG"`, `"INFO"`, etc) instead of having to use the literal integer values (which still work)
+
 ## 0.2.2 - 08/09/2023
 
 ### Changes
