@@ -9,7 +9,8 @@ class PlexWebhookEvent(object):
         self.Server = None
         self.Player = None
         self.Metadata = None
-
+        self._data = data
+        
         if "Account" in data:
             self.Account = PlexAccount(data["Account"])
         
