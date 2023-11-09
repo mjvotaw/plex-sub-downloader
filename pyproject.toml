@@ -22,7 +22,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "PlexAPI>=4.2.0",
+    "PlexAPI>=4.15.5",
     "subliminal>=2.1.0",
     "Flask>=2.0.0",
     "jsonschema",
