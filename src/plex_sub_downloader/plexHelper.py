@@ -1,7 +1,8 @@
+import os
 import logging
 import plexapi
 from plexapi.server import PlexServer
-from plexapi.video import Video, EpisodeSession
+from plexapi.video import Video, Episode, EpisodeSession
 from plexapi.library import LibrarySection
 from plexapi.media import SubtitleStream
 import socket
@@ -32,23 +33,147 @@ class PlexHelper:
             log.error(f'Error while trying to retrieve video with key {key}')
             log.error(e)
             return None
+        
+    def getNextEpisode(self, key):
+        """A convenience function that attempts to find the next episode for the given video key.
+            :param str key:
+            :return plexapi.video.Episode | None:
+        """
+        video = self.getVideoItem(key)
+        if video is None or type(video) is not Episode:
+            return None
+        
+        log.debug(f"Searching for next episode for video {video.key}")
+        show = video.show()
+
+        nextEpisode = show.episode(season=video.seasonNumber, episode=video.episodeNumber + 1)
+        if nextEpisode is None:
+            log.debug(f"Next episode in season not found, checking for first episode of next season")
+            nextEpisode = show.episode(season=video.seasonNumber + 1, episode = 1)
+            if nextEpisode is None:
+                log.debug(f"First episode of next season not found. This must be the last episode of the show(?)")
+                return None
+        
+        nextEpisode.reload()
+        log.debug(f"Found next episode for video {video.key}: {nextEpisode.key}")
+        return nextEpisode
+
     
     def getSessionForPlayEvent(self, event):
+        """Searches for a currently active session matching the given event.
+        :param PlexWebhookEvent event:
+        :return plexapi.video.PlexSession | None:
+        """
+        log.debug(f"Searching for active session for event {event.Metadata.guid}")
         sessions = self.plexServer.sessions()
         for session in sessions:
-            if session.user.id == event.Account["id"] and session.guid == event.Metadata["guid"]:
+            if session.user.id == event.Account.id and session.guid == event.Metadata.guid:
+                log.debug(f"Found active session matching event {event.Metadata.guid}")
                 return session
         
         return None
 
-    def getSubtitlesForSession(self, session):
-        
+    def getSelectedSubtitlesForPlaySession(self, session):
+        """Finds the selected SubtitleStream object (if any) for the given session.
+            :param plexapi.video.PlexSession session:
+            :return plexapi.media.SubtitleStream | None:
+        """
+
+        log.debug(f"Searching for selected SubtitleStream for session {session.session.id}")
         for media in session.media:
+            if media.selected != True:
+                continue
             for part in media.parts:
+                if part.selected != True:
+                    continue
                 for stream in part.streams:
-                    if type(stream) is SubtitleStream:
+                    if type(stream) is SubtitleStream and stream.selected == True:
+                        log.debug(f"Found selected SubtitleStream {stream.id} for session {session.session.id}")
                         return stream
         return None
+
+    def selectVideoSubtitlesForUser(self, video, user, subtitle_to_match):
+        """A convenience function to find and set subtitles for the given video and user that best match the given SubtitleStream.
+        :param plexapi.video.Video video:
+        :param plexapi.myplex.MyPlexAccount user:
+        :param plexapi.media.SubtitleStream subtitle_to_match:
+        """
+
+        matching_subtitles = self.findMatchingSubtitlesForVideo(subtitle_to_match=subtitle_to_match, video=video)
+
+        ps = self.plexServer.switchUser(user.title)
+        for video_part_id, matching_subtitle in matching_subtitles.items():
+            log.debug(f"Setting subtitles {matching_subtitle.id} for user {user.id} on MediaPart {video_part_id}")
+            query_url = f"/library/parts/{video_part_id}?subtitleStreamID={matching_subtitle.id}"
+            ps.query(query_url, method=ps._session.put)
+
+    def unsetVideoSubtitlesForUser(self, video, user):
+        """A convenience function to unset the subtitle selections for the given video and given user.
+        :param plexapi.media.Video video:
+        :param plexapi.myplex.MyPlexAccount user:
+        """
+
+        ps = self.plexServer.switchUser(user.title)
+        for media in video.media:
+            for part in media.parts:
+                log.debug(f"Unsetting subtitle selection for user {user.title} on MediaPart {part.id}")
+                query_url = f"/library/parts/{part.id}?subtitleStreamID=0"
+                ps.query(query_url, method=ps._session.put)
+
+    def findMatchingSubtitlesForVideo(self, subtitle_to_match, video):
+        """Find subtitles on each MediaPart of the given video that best matches the given subtitle from a different video.
+            Returns a dictionary of MediaPart id's and matching SubtitleStream. If no matching SubtitleStream is found for a certain MediaPart,
+            then it will be excluded from the returned dictionary.
+            :param plex.media.SubtitleSteam subtitle_to_match:
+            :param plex.video.Video video:
+            :return dict[str, plex.media.SubtitleStream]
+        """
+        log.debug(f"Searching subtitles for video {video.key} that match subtitle {subtitle_to_match.id}")
+
+        matching_subtitles = {}
+        for media in video.media:
+            for part in media.parts:
+                matching_subtitle = None
+                matching_subtitle_score = 0
+                for stream in part.streams:
+                    if type(stream) is not SubtitleStream:
+                        continue
+
+                    if stream.languageCode != subtitle_to_match.languageCode:
+                        continue
+
+                    score = self.scoreSubtitleMatch(stream, subtitle_to_match)
+                    log.debug(f"Calculated subtitle match score of {score} for SubtitleStream {stream.id}")
+                    if score > matching_subtitle_score:
+                        matching_subtitle_score = score
+                        matching_subtitle = stream
+                
+                if matching_subtitle is not None:
+                    log.debug(f"Selected matching subtitle {matching_subtitle.id} for MediaPart {part.id} with a score of {matching_subtitle_score} against subtitle {subtitle_to_match.id}")
+                    matching_subtitles[part.id] = matching_subtitle
+                else:
+                    log.debug(f"No matching subtitles found for MediaPart {part.id} against subtitle {subtitle_to_match.id}")
+        
+        return matching_subtitles
+    
+    def scoreSubtitleMatch(self, subtitle, subtitle_to_match):
+        """Calculates a 'score' of how well two SubtitleStreams from different videos match.
+        The calculation is weighted towards favoring the same language (since that's pretty important) and format.
+        :param plex.media.SubtitleSteam subtitle:
+        :param plex.media.SubtitleSteam subtitle_to_match:
+        :return int:
+        """
+        score = 0
+        score += 5 if subtitle.language == subtitle_to_match.language else 0
+        score += 2 if subtitle.languageCode == subtitle_to_match.languageCode else 0
+        score += 2 if subtitle.languageTag == subtitle_to_match.languageTag else 0
+        score += 2 if subtitle.format == subtitle_to_match.format else 0
+        score += 1 if subtitle.displayTitle == subtitle_to_match.displayTitle else 0
+        score += 1 if subtitle.providerTitle == subtitle_to_match.providerTitle else 0
+        score += 1 if subtitle.decision == subtitle_to_match.decision else 0
+        score += 1 if subtitle.location == subtitle_to_match.location else 0
+
+        return score
     
 
     def checkLibraryPermissions(self, sectionId=None):

@@ -47,6 +47,15 @@
         },
         "log_level": {
             "type": ["integer", "string"]
+        },
+        "set_next_episode_subtitles": {
+            "type": "boolean"
+        },
+        "save_plex_webhook_events": {
+            "type": "boolean"
+        },
+        "save_plex_webhook_events_dir": {
+            "type": "string"
         }
     }
 }

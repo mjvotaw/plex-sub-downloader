@@ -64,6 +64,8 @@ class PlexSubDownloader:
         
         if event.event == "library.new":
             self.handleLibraryNewEvent(event)
+        elif event.event == "media.play" or event.event == "media.resume":
+            self.handleVideoPlayEvent(event)
 
     def handleLibraryNewEvent(self, event):
         """Handles webhook events of type library.new.
@@ -79,6 +81,39 @@ class PlexSubDownloader:
             return
         
         self.handleDownloadingVideoSubtitles(video)
+
+    def handleVideoPlayEvent(self, event):
+        """Handles webhook events of type media.play and media.resume.
+            If `set_next_episode_subtitles` is set to True in config, attempts to set subtitles 
+            for the next episode in the series (assuming that the event is for an Episode).
+            :param PlexWebhookEvent event:
+        """
+        if self.config.get('set_next_episode_subtitles', False) == False or event.Metadata.type != "episode":
+            return
+        
+        log.info(f"Handling {event.event} event")
+        log.info(f'Title: {event.Metadata.title}, type: {event.Metadata.type}, section: {event.Metadata.librarySectionTitle}')
+
+        session = self.plexHelper.getSessionForPlayEvent(event)
+        if session is None or type(session) is not EpisodeSession:
+            log.debug("No session found for this event. Skipping")
+            return
+        
+        next_episode = self.plexHelper.getNextEpisode(session.key)
+        if next_episode is None:
+            log.debug("No next episode for this session. Skipping")
+            return
+        
+        subtitle_stream = self.plexHelper.getSelectedSubtitlesForPlaySession(session)
+        if subtitle_stream is None:
+            log.debug("No subtitles set for this session. Setting next episode to show no subtitles.")
+            self.plexHelper.unsetVideoSubtitlesForUser(video=next_episode, user=session.user)
+            return
+                
+        self.manuallyCheckVideoSubtitles(next_episode.key)
+        next_episode.reload()
+        self.plexHelper.selectVideoSubtitlesForUser(video=next_episode, user=session.user, subtitle_to_match=subtitle_stream)
+
 
     def manuallyCheckVideoSubtitles(self, video_key):
         """Manually check video for missing subtitles, and try to download missing subs.
