@@ -22,7 +22,7 @@ def respond():
     data = json.loads(request.form.get('payload'))
     
     event = PlexWebhookEvent(data)
-    psd.handleWebhookEvent(event)
+    psd.handle_webhook_event(event)
     return Response(status=200)
 
 
@@ -83,7 +83,7 @@ def main():
 
     if args.command == "check-video":
         key = args.video_key
-        psd.manuallyCheckVideoSubtitles(key)
+        psd.manually_check_video_subtitles(key)
     
 
 def loadConfig(filepath):
@@ -93,8 +93,8 @@ def loadConfig(filepath):
         return config  
 
 def checkPlexConfiguration():
-    if psd.checkWebhookRegistration() == False:
-        psd.addWebhookToPlex()
+    if psd.check_webhook_registration() == False:
+        psd.add_webhook_to_plex()
 
 def runFlask(config):
     host = config.get('webhook_host', None)

@@ -45,13 +45,13 @@ class PlexSubDownloader:
                                      host=config.get('host', '0.0.0.0'), 
                                      port=config.get('port', None))
         
-        if config['subtitle_destination'] == 'with_media' and self.plexHelper.checkLibraryPermissions() == False:
+        if config['subtitle_destination'] == 'with_media' and self.plexHelper.check_library_permissions() == False:
             log.error("One or more of the Plex libraries are not readable/writable by the current user.")
             return False
         return True
         
 
-    def handleWebhookEvent(self, event):
+    def handle_webhook_event(self, event):
         """Handles the given webhook event. 
         :param PlexWebhookEvent event:
         """
@@ -60,14 +60,14 @@ class PlexSubDownloader:
         if self.config.get("save_plex_webhook_events", False):
             save_dir = self.config.get("save_plex_webhook_events_dir", None)
             if save_dir is not None:
-                self.saveWebhookEvent(event, save_dir)
+                self.save_webhook_event(event, save_dir)
         
         if event.event == "library.new":
-            self.handleLibraryNewEvent(event)
+            self.handle_library_new_event(event)
         elif event.event == "media.play" or event.event == "media.resume":
-            self.handleVideoPlayEvent(event)
+            self.handle_video_play_event(event)
 
-    def handleLibraryNewEvent(self, event):
+    def handle_library_new_event(self, event):
         """Handles webhook events of type library.new.
         Retrieves the relevent item from Plex and searches for subtitles.
         :param PlexWebhookEvent event:
@@ -75,14 +75,14 @@ class PlexSubDownloader:
         log.info("Handling library.new event")
         log.info(f'Title: {event.Metadata.title}, type: {event.Metadata.type}, section: {event.Metadata.librarySectionTitle}')
         
-        video = self.plexHelper.getVideoItemFromEvent(event)
+        video = self.plexHelper.get_video_item_from_event(event)
         if video is None:
             log.info("Video referenced in event could not be retrieved.")
             return
         
-        self.handleDownloadingVideoSubtitles(video)
+        self.handle_downloading_video_subtitles(video)
 
-    def handleVideoPlayEvent(self, event):
+    def handle_video_play_event(self, event):
         """Handles webhook events of type media.play and media.resume.
             If `set_next_episode_subtitles` is set to True in config, attempts to set subtitles 
             for the next episode in the series (assuming that the event is for an Episode).
@@ -94,52 +94,52 @@ class PlexSubDownloader:
         log.info(f"Handling {event.event} event")
         log.info(f'Title: {event.Metadata.title}, type: {event.Metadata.type}, section: {event.Metadata.librarySectionTitle}')
 
-        session = self.plexHelper.getSessionForPlayEvent(event)
+        session = self.plexHelper.get_session_for_play_event(event)
         if session is None or type(session) is not EpisodeSession:
             log.debug("No session found for this event. Skipping")
             return
         
-        next_episode = self.plexHelper.getNextEpisode(session.key)
+        next_episode = self.plexHelper.get_next_episode(session.key)
         if next_episode is None:
             log.debug("No next episode for this session. Skipping")
             return
         
-        subtitle_stream = self.plexHelper.getSelectedSubtitlesForPlaySession(session)
+        subtitle_stream = self.plexHelper.get_selected_subtitles_for_play_session(session)
         if subtitle_stream is None:
             log.debug("No subtitles set for this session. Setting next episode to show no subtitles.")
-            self.plexHelper.unsetVideoSubtitlesForUser(video=next_episode, user=session.user)
+            self.plexHelper.unset_video_subtitles_for_user(video=next_episode, user=session.user)
             return
                 
-        self.manuallyCheckVideoSubtitles(next_episode.key)
+        self.manually_check_video_subtitles(next_episode.key)
         next_episode.reload()
-        self.plexHelper.selectVideoSubtitlesForUser(video=next_episode, user=session.user, subtitle_to_match=subtitle_stream)
+        self.plexHelper.select_video_subtitles_for_user(video=next_episode, user=session.user, subtitle_to_match=subtitle_stream)
 
 
-    def manuallyCheckVideoSubtitles(self, video_key):
+    def manually_check_video_subtitles(self, video_key):
         """Manually check video for missing subtitles, and try to download missing subs.
         """
 
-        video = self.plexHelper.getVideoItem(video_key)
+        video = self.plexHelper.get_video_item(video_key)
         if video is None:
             log.info(f"Video with key {video_key} could not be retrieved.")
             return 
-        self.handleDownloadingVideoSubtitles(video)
+        self.handle_downloading_video_subtitles(video)
 
-    def handleDownloadingVideoSubtitles(self, video):
-        missingVideos = self.getVidsMissingSubtitles([video])
+    def handle_downloading_video_subtitles(self, video):
+        missingVideos = self.get_videos_missing_subtitles([video])
         log.info("Found " + str(len(missingVideos)) + " videos missing subtitles")
         log.info([f'{video.title}, {video.key}' for video in missingVideos])
         if len(missingVideos) > 0:
-            subtitles = self.downloadSubtitlesForVideos(missingVideos)
+            subtitles = self.download_subtitles_for_videos(missingVideos)
 
             if self.subtitle_destination == "metadata":
-                self.uploadSubtitlesToMetadata(missingVideos, subtitles)
+                self.upload_subtitles_to_metadata(missingVideos, subtitles)
             else:
                 self.sub.save_subtitles(subtitles)
         else:
             log.info("No subtitles to download, doing nothing!")
         
-    def getVidsMissingSubtitles(self,videos):
+    def get_videos_missing_subtitles(self,videos):
         """Search the given list of videos for ones that don't already have subtitles.
         For videos of type 'season' or 'show', this will search through all of the episodes
         as well.
@@ -150,28 +150,28 @@ class PlexSubDownloader:
         vidsMissingSubs = []
         for v in videos:
             if v.type == 'movie' or v.type == 'episode':
-                if self.isVideoMissingSubtitles(v):
+                if self.is_video_missing_subtitles(v):
                     vidsMissingSubs.append(v)
                 
             elif v.type == 'season' or v.type == 'show':
                 eps = v.episodes()
                 for e in eps:
                     e.reload()
-                    if self.isVideoMissingSubtitles(e):
+                    if self.is_video_missing_subtitles(e):
                         vidsMissingSubs.append(e)
 
         return vidsMissingSubs
 
-    def isVideoMissingSubtitles(self, video):
+    def is_video_missing_subtitles(self, video):
         """Checks the given video to see if it's missing subtitles for any of the languages defined in config['languages'].
         :param video: plexapi.video.Video object
         :return: boolean, False if the video has subtitles for every requested language, True otherwise
         """
 
-        missingSubtitles = self.getMissingSubtitleLanguages(video)
+        missingSubtitles = self.get_missing_subtitle_languages(video)
         return len(missingSubtitles) > 0
     
-    def getMissingSubtitleLanguages(self, video):
+    def get_missing_subtitle_languages(self, video):
         """Compares the existing subtitle languages on the video to the languages requested based on config['languages'],
         and returns requested languages that aren't already present.
         :param video: plexapi.video.Video object
@@ -192,7 +192,7 @@ class PlexSubDownloader:
 
         return requestedLanguages
 
-    def downloadSubtitlesForVideos(self, videos):
+    def download_subtitles_for_videos(self, videos):
         """Attempts to download subtitles for the given list of videos.
         :param list videos: list of plexapi.video.Video objects.
         :return: dict[subliminal.video.Video, list[subliminal.subtitle.Subtitle]]
@@ -200,11 +200,11 @@ class PlexSubDownloader:
 
         log.info(f"Downloading subtitles for {len(videos)} videos:")
         log.info([video.title for video in videos])
-        missing_languages = [self.getMissingSubtitleLanguages(video) for video in videos]
+        missing_languages = [self.get_missing_subtitle_languages(video) for video in videos]
         subtitles = self.sub.search_videos(videos, missing_languages)
         return subtitles
 
-    def uploadSubtitlesToMetadata(self, plexVideos, subtitleDict):
+    def upload_subtitles_to_metadata(self, plexVideos, subtitleDict):
         """Saves the subtitles to Plex.
         :param list plexVideos: list of plexapi.video.Video objects.
         :param dict subtitles: dict of dict[subliminal.video.Video, list[subliminal.subtitle.Subtitle]]
@@ -240,13 +240,13 @@ class PlexSubDownloader:
                             log.debug('Error when trying to set default subtitle stream. This probably isn\'t a big deal?')
                             log.debug(e)
                             
-    def checkWebhookRegistration(self):
-        return self.plexHelper.checkWebhookRegistration()
+    def check_webhook_registration(self):
+        return self.plexHelper.check_webhook_registration()
     
-    def addWebhookToPlex(self):
-        return self.plexHelper.addWebhookToPlex()
+    def add_webhook_to_plex(self):
+        return self.plexHelper.add_webhook_to_plex()
         
-    def saveWebhookEvent(self, event, dir):
+    def save_webhook_event(self, event, dir):
         import json
         import time
         

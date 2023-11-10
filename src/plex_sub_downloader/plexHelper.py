@@ -16,14 +16,14 @@ class PlexHelper:
         self.host = host
         self.port = port
 
-    def getVideoItemFromEvent(self, event):
+    def get_video_item_from_event(self, event):
          # if Metadata.type == "show", then the metadata key looks like
         # `/library/metadata/45533/children`, which doesn't return what we actually want
         # when we call fetchItem
         key = event.Metadata.key
-        return self.getVideoItem(key)
+        return self.get_video_item(key)
 
-    def getVideoItem(self, key):
+    def get_video_item(self, key):
         key = key.replace("/children", "")
         try:
             video = self.plexServer.fetchItem(ekey=key)
@@ -34,12 +34,12 @@ class PlexHelper:
             log.error(e)
             return None
         
-    def getNextEpisode(self, key):
+    def get_next_episode(self, key):
         """A convenience function that attempts to find the next episode for the given video key.
             :param str key:
             :return plexapi.video.Episode | None:
         """
-        video = self.getVideoItem(key)
+        video = self.get_video_item(key)
         if video is None or type(video) is not Episode:
             return None
         
@@ -59,7 +59,7 @@ class PlexHelper:
         return nextEpisode
 
     
-    def getSessionForPlayEvent(self, event):
+    def get_session_for_play_event(self, event):
         """Searches for a currently active session matching the given event.
         :param PlexWebhookEvent event:
         :return plexapi.video.PlexSession | None:
@@ -73,7 +73,7 @@ class PlexHelper:
         
         return None
 
-    def getSelectedSubtitlesForPlaySession(self, session):
+    def get_selected_subtitles_for_play_session(self, session):
         """Finds the selected SubtitleStream object (if any) for the given session.
             :param plexapi.video.PlexSession session:
             :return plexapi.media.SubtitleStream | None:
@@ -92,14 +92,14 @@ class PlexHelper:
                         return stream
         return None
 
-    def selectVideoSubtitlesForUser(self, video, user, subtitle_to_match):
+    def select_video_subtitles_for_user(self, video, user, subtitle_to_match):
         """A convenience function to find and set subtitles for the given video and user that best match the given SubtitleStream.
         :param plexapi.video.Video video:
         :param plexapi.myplex.MyPlexAccount user:
         :param plexapi.media.SubtitleStream subtitle_to_match:
         """
 
-        matching_subtitles = self.findMatchingSubtitlesForVideo(subtitle_to_match=subtitle_to_match, video=video)
+        matching_subtitles = self.find_matching_subtitles_for_video(subtitle_to_match=subtitle_to_match, video=video)
 
         ps = self.plexServer.switchUser(user.title)
         for video_part_id, matching_subtitle in matching_subtitles.items():
@@ -107,7 +107,7 @@ class PlexHelper:
             query_url = f"/library/parts/{video_part_id}?subtitleStreamID={matching_subtitle.id}"
             ps.query(query_url, method=ps._session.put)
 
-    def unsetVideoSubtitlesForUser(self, video, user):
+    def unset_video_subtitles_for_user(self, video, user):
         """A convenience function to unset the subtitle selections for the given video and given user.
         :param plexapi.media.Video video:
         :param plexapi.myplex.MyPlexAccount user:
@@ -120,7 +120,7 @@ class PlexHelper:
                 query_url = f"/library/parts/{part.id}?subtitleStreamID=0"
                 ps.query(query_url, method=ps._session.put)
 
-    def findMatchingSubtitlesForVideo(self, subtitle_to_match, video):
+    def find_matching_subtitles_for_video(self, subtitle_to_match, video):
         """Find subtitles on each MediaPart of the given video that best matches the given subtitle from a different video.
             Returns a dictionary of MediaPart id's and matching SubtitleStream. If no matching SubtitleStream is found for a certain MediaPart,
             then it will be excluded from the returned dictionary.
@@ -142,7 +142,7 @@ class PlexHelper:
                     if stream.languageCode != subtitle_to_match.languageCode:
                         continue
 
-                    score = self.scoreSubtitleMatch(stream, subtitle_to_match)
+                    score = self.score_subtitle_match(stream, subtitle_to_match)
                     log.debug(f"Calculated subtitle match score of {score} for SubtitleStream {stream.id}")
                     if score > matching_subtitle_score:
                         matching_subtitle_score = score
@@ -156,7 +156,7 @@ class PlexHelper:
         
         return matching_subtitles
     
-    def scoreSubtitleMatch(self, subtitle, subtitle_to_match):
+    def score_subtitle_match(self, subtitle, subtitle_to_match):
         """Calculates a 'score' of how well two SubtitleStreams from different videos match.
         The calculation is weighted towards favoring the same language (since that's pretty important) and format.
         :param plex.media.SubtitleSteam subtitle:
@@ -176,7 +176,7 @@ class PlexHelper:
         return score
     
 
-    def checkLibraryPermissions(self, sectionId=None):
+    def check_library_permissions(self, sectionId=None):
         """Checks whether the application has permissions to read/write to the base paths of each section 
         within Plex's library.
         :param string sectionId: An optional id value to just check permissions of a single section.
@@ -210,8 +210,8 @@ class PlexHelper:
 
     # Methods for checking webhook registration
 
-    def checkWebhookRegistration(self):
-        webhookUrl = self.getWebhookUrl()
+    def check_webhook_registration(self):
+        webhookUrl = self.get_webhook_url()
         log.info(f'Checking if webhook url {webhookUrl} has been added to Plex...')
 
         plexAccount = self.plexServer.myPlexAccount()
@@ -224,8 +224,8 @@ class PlexHelper:
             log.info(f'webhook url {webhookUrl} has NOT been added to Plex')
             return False
     
-    def addWebhookToPlex(self):
-        webhookUrl = self.getWebhookUrl()
+    def add_webhook_to_plex(self):
+        webhookUrl = self.get_webhook_url()
         plexAccount = self.plexServer.myPlexAccount()
         log.info(f'Attempting to add webhook url {webhookUrl} to Plex...')
         webhooks = plexAccount.addWebhook(webhookUrl)
@@ -237,8 +237,8 @@ class PlexHelper:
             return False
         
 
-    def getWebhookUrl(self):
-        host = self.getExternalHost()
+    def get_webhook_url(self):
+        host = self.get_external_host()
         port = self.port
         if port is not None:
             port = f":{port}"
@@ -246,7 +246,7 @@ class PlexHelper:
         webhookUrl = f"http://{host}{port}/webhook"
         return webhookUrl
     
-    def getExternalHost(self):
+    def get_external_host(self):
         host = self.host
         
         if host == "0.0.0.0":
