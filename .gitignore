@@ -8,5 +8,6 @@ local_tests/
 *.egg-info/
 .DS_Store
 subliminalCache.dbm
+subliminalCache.dbm.db
 config.json
 plex_webhook.log
