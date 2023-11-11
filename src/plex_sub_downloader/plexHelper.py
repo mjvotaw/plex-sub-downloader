@@ -50,11 +50,11 @@ class PlexHelper:
 
         #show.episode throws an exception if it can't find the video, because plexapi tries to parse a non-existent response
         try:
-            nextEpisode = show.episode(season=video.seasonNumber, episode=video.episodeNumber + 1)
+            nextEpisode = show.episode(season=int(video.seasonNumber), episode=int(video.episodeNumber) + 1)
         except:
             log.debug(f"Next episode in season not found, checking for first episode of next season")
             try:
-                nextEpisode = show.episode(season=video.seasonNumber + 1, episode = 1)
+                nextEpisode = show.episode(season=int(video.seasonNumber) + 1, episode = 1)
             except:
                 log.debug(f"First episode of next season not found. This must be the last episode of the show(?)")
                 return None
