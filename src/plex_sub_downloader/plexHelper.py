@@ -46,17 +46,23 @@ class PlexHelper:
         log.debug(f"Searching for next episode for video {video.key}")
         show = video.show()
 
-        nextEpisode = show.episode(season=video.seasonNumber, episode=video.episodeNumber + 1)
-        if nextEpisode is None:
+        nextEpisode = None
+
+        #show.episode throws an exception if it can't find the video, because plexapi tries to parse a non-existent response
+        try:
+            nextEpisode = show.episode(season=video.seasonNumber, episode=video.episodeNumber + 1)
+        except:
             log.debug(f"Next episode in season not found, checking for first episode of next season")
-            nextEpisode = show.episode(season=video.seasonNumber + 1, episode = 1)
-            if nextEpisode is None:
+            try:
+                nextEpisode = show.episode(season=video.seasonNumber + 1, episode = 1)
+            except:
                 log.debug(f"First episode of next season not found. This must be the last episode of the show(?)")
                 return None
-        
-        nextEpisode.reload()
-        log.debug(f"Found next episode for video {video.key}: {nextEpisode.key}")
-        return nextEpisode
+        finally:
+            if nextEpisode is not None:
+                nextEpisode.reload()
+                log.debug(f"Found next episode for video {video.key}: {nextEpisode.key}")
+            return nextEpisode
 
     
     def get_session_for_play_event(self, event):
@@ -101,7 +107,7 @@ class PlexHelper:
 
         matching_subtitles = self.find_matching_subtitles_for_video(subtitle_to_match=subtitle_to_match, video=video)
 
-        ps = self.plexServer.switchUser(user.title)
+        ps = self.switch_user(user)
         for video_part_id, matching_subtitle in matching_subtitles.items():
             log.debug(f"Setting subtitles {matching_subtitle.id} for user {user.id} on MediaPart {video_part_id}")
             query_url = f"/library/parts/{video_part_id}?subtitleStreamID={matching_subtitle.id}"
@@ -113,7 +119,7 @@ class PlexHelper:
         :param plexapi.myplex.MyPlexAccount user:
         """
 
-        ps = self.plexServer.switchUser(user.title)
+        ps = self.switch_user(user)
         for media in video.media:
             for part in media.parts:
                 log.debug(f"Unsetting subtitle selection for user {user.title} on MediaPart {part.id}")
@@ -175,6 +181,19 @@ class PlexHelper:
 
         return score
     
+    def switch_user(self, user):
+        """Wrapper function for calling PlexServer.switchUser(). 
+        If user is the admin account, then PlexServer.switchUser() will raise an exception, 
+        so the default plexServer object will be returned.
+        :param plexapi.myplex.MyPlexAccount user:
+        :return plexapi.server.PlexServer:
+        """
+
+        admin = self.plexServer.myPlexAccount()
+        if user.id == admin.id:
+            return self.plexServer
+        else: 
+            return self.plexServer.switchUser(user.title)
 
     def check_library_permissions(self, sectionId=None):
         """Checks whether the application has permissions to read/write to the base paths of each section 
