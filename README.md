@@ -16,11 +16,14 @@ And there's other tools like [Bazarr](https://github.com/bazarr/), which works b
 
 I just wanted something that tries to download subtitles for new media added to my Plex server, and that's it.
 
-<br />
+# Features
 
----------------
+- Automatically download subtitles for one or more languages when new media is added
+- Ignore existing subtitles in favor of preferred formats (ie replace .ssa with .srt)
+- Automatically download and enable/disable subtitles for the next episode of the show that you and other users are watching
 
-## Requirements
+
+# Requirements
 - Requires python >=3.8
 - You'll need to purchase [Plex Pass](https://www.plex.tv/plex-pass/) to enable [push notifications](https://support.plex.tv/articles/push-notifications/) and [webhooks](https://support.plex.tv/articles/115002267687-webhooks/) 
 
@@ -155,6 +158,7 @@ plex_sub_downloader --config path/to/config.json check-video /library/metadata/4
 | subtitle_destination | Optional, default `"with_media"` | Either `"with_media"` or `"metadata"`. `"with_media"` will save subtitle files alongside the media files. `"metadata"` will upload the subtitles to Plex, which stores the subtitles as part of the media's metadata. If Plex and PlexSubDownloader don't run on the same server, you'll need to set this to `"metadata"`.
 | languages | Optional, default `["eng"]` | Array of [ISO 639-3 language tags](https://en.wikipedia.org/wiki/List_of_ISO_639-3_codes) to download subtitles for.|
 | format_priority | Optional, default `None` | Array of subtitle formats (file extensions, without the ".") that should be prioritized. PlexSubDownloader will ignore any existing subtitles with formats not listed and will try to find subtitles in one of the formats listed. [Plex fully supports](https://support.plex.tv/articles/200471133-adding-local-subtitles-to-your-media/) `"srt", "smi", "ssa", "ass"`, and `"vtt"` formats. |
+| set_next_episode_subtitles | Optional, default `false` | Boolean value, when set to `true`, will try to set/unset subtitles for the next episode of a tv show when you start watching an episode. 
 | log_level | Optional, default `INFO` | The log level to set [Python's logging](https://docs.python.org/3/howto/logging.html). Expects a string value, one of `"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"`. |
 
 
@@ -174,6 +178,7 @@ plex_sub_downloader --config path/to/config.json check-video /library/metadata/4
         "srt", 
         "smi"
     ],
+    "set_next_episode_subtitles": true,
     "subtitle_providers": [
         "opensubtitlesvip"
     ],

@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 0.3.0 - 11/08/2023
+
+### Changes
+- Added a new `set_next_episode_subtitles` config option (see README)
+- Refactored plexapi communication out of PlexSubDownloader class into PlexHelper class
+- Refactored method names in PlexSubDownloader and PlexHelper to snake_case
+- Fixed an issue introduced in 0.2.4 that was preventing subtitles from being downloaded
+
 ## 0.2.4 - 11/01/2023
 
 ### Changes
