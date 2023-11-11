@@ -79,6 +79,7 @@ class SubliminalHelper:
             subs = subtitles[video]
             best_subs = self.select_best_subtitles(video, subs, video_languages)
             if best_subs is not None:
+                subliminal.core.download_subtitles(best_subs, providers=self.providers, provider_configs=self.provider_configs)
                 best_subtitles[video] = best_subs
         
         log.debug(best_subtitles)
