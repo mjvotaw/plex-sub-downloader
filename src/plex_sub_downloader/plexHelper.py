@@ -85,7 +85,7 @@ class PlexHelper:
             :return plexapi.media.SubtitleStream | None:
         """
 
-        log.debug(f"Searching for selected SubtitleStream for session {session.session.id}")
+        log.debug(f"Searching for selected SubtitleStream for session")
         for media in session.media:
             if media.selected != True:
                 continue
@@ -94,7 +94,7 @@ class PlexHelper:
                     continue
                 for stream in part.streams:
                     if type(stream) is SubtitleStream and stream.selected == True:
-                        log.debug(f"Found selected SubtitleStream {stream.id} for session {session.session.id}")
+                        log.debug(f"Found selected SubtitleStream {stream.id} for session")
                         return stream
         return None
 
