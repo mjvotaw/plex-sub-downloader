@@ -42,8 +42,8 @@ class PlexSubDownloader:
         
         self.plexHelper = PlexHelper(baseurl=config['plex_base_url'], 
                                      token=config['plex_auth_token'], 
-                                     host=config.get('host', '0.0.0.0'), 
-                                     port=config.get('port', None))
+                                     host=config.get('webhook_host', '127.0.0.1'), 
+                                     port=config.get('webhook_port', 5000))
         
         if config['subtitle_destination'] == 'with_media' and self.plexHelper.check_library_permissions() == False:
             log.error("One or more of the Plex libraries are not readable/writable by the current user.")
