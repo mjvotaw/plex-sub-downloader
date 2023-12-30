@@ -97,8 +97,8 @@ def checkPlexConfiguration():
         psd.add_webhook_to_plex()
 
 def runFlask(config):
-    host = config.get('webhook_host', None)
-    port = config.get('webhook_port', None)
+    host = config.get('webhook_host', '127.0.0.1')
+    port = config.get('webhook_port', 5000)
     serve(APP, host=host, port=port)
 
 def setupLogging():

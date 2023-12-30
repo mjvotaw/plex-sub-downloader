@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.3.1 - 12/30/2023
+
+### Changes
+- **Breaking Change** `host` and `port` config options have been renamed `webhook_host` and `webhook_port`, so that they match literally all of the documentation that I wrote for this.
+- Defaults of `127.0.0.1` and `5000` for the `webhook_host` and `webhook_port`, respectively actually work now.
+
 ## 0.3.0 - 11/08/2023
 
 ### Changes
