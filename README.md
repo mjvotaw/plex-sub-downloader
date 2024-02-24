@@ -1,6 +1,12 @@
 Plex Sub Downloader
 ===================
 
+### __NOTE__: This project is no longer under development. After a year or so of working on this, I haven't been able to get it working consistently for myself or others. 
+I've just given up and started using Bazarr, as I've found myself using Sonarr and Radarr for a lot of my media management now. To their credit, as much as I don't care for them, they work pretty well.
+
+So don't use this project! It only sort of works, and it's been abandonded by its developer.
+
+--------
 
 ## What is it?
 
@@ -36,10 +42,8 @@ I just wanted something that tries to download subtitles for new media added to 
 
 <br />
 
-First, install plex_sub_downloader:
-```
-pip3 install plex_sub_downloader
-```
+First, ~install plex_sub_downloader~ (this project is no longer available through pypi, if you really want to use it, you'll need to download the project from github)
+
 Then, find an auth token for your Plex account:
   https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/
 
